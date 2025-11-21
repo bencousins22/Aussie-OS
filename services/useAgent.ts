@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { Message, TerminalBlock, WorkflowPhase, EditorTab } from '../types';
 import { AUSSIE_SYSTEM_INSTRUCTION, TOOLS } from '../constants';
@@ -11,6 +11,8 @@ import { orchestrator } from './orchestrator';
 import { browserAutomation } from './browserAutomation';
 import { notify } from './notification';
 import { scheduler } from './scheduler';
+import { render } from './render';
+import { bus } from './eventBus';
 
 const uuid = () => Math.random().toString(36).substring(2, 15);
 
@@ -25,6 +27,22 @@ export const useAgent = () => {
     const chatSessionRef = useRef<any>(null);
     const isProcessingRef = useRef(false);
 
+    // Subscribe to agent messages from Swarm/Jules
+    useEffect(() => {
+        const unsubscribe = bus.subscribe((e) => {
+            if (e.type === 'agent-message') {
+                setMessages(prev => [...prev, {
+                    id: uuid(),
+                    role: 'system',
+                    sender: e.payload.agent,
+                    text: e.payload.text,
+                    timestamp: Date.now()
+                }]);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
     const addBlock = (type: TerminalBlock['type'], content: string, metadata?: any) => {
         setTerminalBlocks(prev => [...prev, {
             id: uuid(),
@@ -36,7 +54,6 @@ export const useAgent = () => {
     };
 
     const openFile = (path: string) => {
-        // Media Check
         const ext = path.split('.').pop()?.toLowerCase();
         if (['mp4', 'webm', 'mov'].includes(ext || '')) {
             setMediaFile({ path, type: 'video' });
@@ -72,7 +89,6 @@ export const useAgent = () => {
                 }];
             });
             setActiveTabPath(path);
-            // Note: View switching logic is handled in App.tsx effect/handler
         } catch (e) {
             addBlock('error', `Cannot open file: ${path}`);
         }
@@ -91,44 +107,35 @@ export const useAgent = () => {
                 case 'file_read':
                     return { content: fs.readFile(args.file) };
 
-                case 'file_write': {
-                    let content = args.content;
-                    if (args.append) {
-                         try { content = fs.readFile(args.file) + content; } catch (e) {}
-                    }
-                    fs.writeFile(args.file, content);
-                    // If it's an HTML file, notify likely needed for Browser refresh (handled by EventBus)
-                    return { status: "success", bytes: content.length };
-                }
+                case 'file_write':
+                    fs.writeFile(args.file, args.content, args.append);
+                    return { status: "success" };
+                
+                case 'file_list':
+                    return { files: fs.readDir(args.path).map(f => f.name) };
 
-                case 'file_list': {
-                    const files = fs.readDir(args.path);
-                    return { files: files.map(f => f.name) };
-                }
-
-                case 'shell_exec': {
+                case 'shell_exec':
                     const res = await shell.execute(args.command);
                     if (res.stdout) addBlock('output', res.stdout);
                     if (res.stderr) addBlock('error', res.stderr);
                     return { stdout: res.stdout, stderr: res.stderr, exit_code: res.exitCode };
-                }
+                
+                case 'deploy_to_render':
+                    const deployId = await render.createService(args.repoUrl);
+                    notify.info("Deployment Started", `Render deployment initiated for ${args.repoUrl}`);
+                    return { status: "initiated", deploymentId: deployId };
 
-                case 'apm_install': {
-                    const res = await apm.install(args.package);
-                    addBlock('system', res);
+                case 'apm_install':
+                    const apmRes = await apm.install(args.package);
+                    addBlock('system', apmRes);
                     notify.success("Package Installed", args.package);
-                    return { status: "installed", message: res };
-                }
+                    return { status: "installed", message: apmRes };
 
-                case 'github_ops': {
-                    const res = await github.processOperation(args.operation, args.data);
-                    return res;
-                }
+                case 'github_ops':
+                    return await github.processOperation(args.operation, args.data);
 
-                case 'media_gen': {
-                    const res = await orchestrator.generateMedia(args.service, args.prompt, args.params);
-                    return res;
-                }
+                case 'media_gen':
+                    return await orchestrator.generateMedia(args.service, args.prompt, args.params);
 
                 case 'browser_navigate':
                     return { result: await browserAutomation.goto(args.url) };
@@ -142,7 +149,7 @@ export const useAgent = () => {
                 case 'browser_screenshot':
                     return { image: await browserAutomation.screenshot() };
 
-                case 'schedule_task': {
+                case 'schedule_task':
                     scheduler.addTask({
                         name: args.name,
                         type: args.type as any,
@@ -152,7 +159,6 @@ export const useAgent = () => {
                         nextRun: Date.now() + (args.interval ? args.interval * 1000 : 0)
                     });
                     return { status: "scheduled" };
-                }
 
                 case 'idle':
                     isProcessingRef.current = false;
@@ -162,7 +168,7 @@ export const useAgent = () => {
                     return { status: "idle" };
 
                 default:
-                    return { error: `Tool ${name} not implemented in Aussie OS kernel.` };
+                    return { error: `Tool ${name} not implemented.` };
             }
         } catch (e: any) {
             addBlock('error', `Tool Error: ${e.message}`);

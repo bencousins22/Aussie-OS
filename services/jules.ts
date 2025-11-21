@@ -5,6 +5,7 @@ import { fs } from './fileSystem';
 import { shell } from './shell';
 import { github } from './github';
 import { orchestrator } from './orchestrator';
+import { bus } from './eventBus';
 import { AUSSIE_SYSTEM_INSTRUCTION, TOOLS } from '../constants';
 
 /**
@@ -53,6 +54,7 @@ export class JulesOrchestrator {
                     return { stdout: res.stdout, stderr: res.stderr, exitCode: res.exitCode };
                 case 'message_notify_user':
                     this.logCallback(`[MSG] ${args.text}`);
+                    bus.emit('agent-message', { agent: 'Jules', text: args.text });
                     return { status: "ok" };
                 case 'github_ops':
                     return await github.processOperation(args.operation, args.data);
@@ -68,6 +70,7 @@ export class JulesOrchestrator {
     public async run() {
         if (!this.ai) {
             this.logCallback("Error: No API Key found.");
+            bus.emit('agent-message', { agent: 'Jules', text: "Error: No API Key found. Cannot start flow." });
             return;
         }
 
@@ -79,8 +82,12 @@ export class JulesOrchestrator {
         }
 
         this.logCallback("Starting Flow Execution...");
+        bus.emit('agent-message', { agent: 'Jules', text: `🚀 Starting Flow: ${this.graph.name}` });
+        
         await this.traverse(startNode, "Flow Started");
+        
         this.logCallback("Flow Execution Completed.");
+        bus.emit('agent-message', { agent: 'Jules', text: `✅ Flow "${this.graph.name}" completed successfully.` });
     }
 
     private async traverse(node: FlowNode, context: string) {
@@ -99,6 +106,7 @@ export class JulesOrchestrator {
         } catch (e: any) {
             this.updateNodeCallback(node.id, { status: 'error', result: e.message });
             this.logCallback(`CRITICAL FAILURE in node ${node.label}: ${e.message}`);
+            bus.emit('agent-message', { agent: 'Jules', text: `❌ Critical failure in node "${node.label}": ${e.message}` });
             return; // Stop flow on critical error
         }
 
@@ -179,6 +187,7 @@ export class JulesOrchestrator {
                                 stepSuccess = false;
                                 stepError = `Command '${call.args.command}' failed with exit code ${res.exitCode}. STDERR: ${res.stderr}`;
                                 this.logCallback(`[AUTO-FIX] Detected failure: ${stepError}`);
+                                bus.emit('agent-message', { agent: 'Jules', text: `🔧 Auto-Fixing error in ${node.label}: ${stepError.substring(0, 50)}...` });
                             }
                             
                             if (res.error) {

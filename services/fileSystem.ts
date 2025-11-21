@@ -111,7 +111,8 @@ class FileSystemService {
         return node.content || '';
     }
 
-    public writeFile(path: string, content: string) {
+    // FIX: Updated writeFile to accept an optional `append` parameter.
+    public writeFile(path: string, content: string, append?: boolean) {
         const parts = path.split('/').filter(p => p);
         const fileName = parts.pop();
         if (!fileName) throw new Error('Invalid path');
@@ -133,10 +134,18 @@ class FileSystemService {
             current = next;
         }
 
+        let finalContent = content;
+        if (append) {
+            const existingNode = current.children?.get(fileName);
+            if (existingNode && existingNode.type === 'file' && existingNode.content) {
+                finalContent = existingNode.content + content;
+            }
+        }
+
         const fileNode: FileNode = {
             name: fileName,
             type: 'file',
-            content,
+            content: finalContent,
             lastModified: Date.now()
         };
         

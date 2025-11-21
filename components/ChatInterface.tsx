@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Message } from '../types';
-import { User, Bot, Paperclip, Sparkles, ArrowRight } from 'lucide-react';
+import { User, Bot, Paperclip, Sparkles, ArrowRight, Zap, Activity } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatInterfaceProps {
@@ -45,7 +45,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onQuickA
                     className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                 >
                     <div className={`flex items-center gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                        <span className="text-[10px] text-gray-500 font-mono uppercase">{msg.role === 'user' ? 'You' : 'Aussie'}</span>
+                        {msg.sender ? (
+                            <div className="flex items-center gap-1">
+                                {msg.sender === 'Hive Mind' ? <Activity className="w-3 h-3 text-purple-400" /> : 
+                                 msg.sender === 'Jules' ? <Zap className="w-3 h-3 text-yellow-400" /> :
+                                 <Bot className="w-3 h-3 text-blue-400" />}
+                                <span className="text-[10px] text-gray-400 font-bold">{msg.sender}</span>
+                            </div>
+                        ) : (
+                            <span className="text-[10px] text-gray-500 font-mono uppercase">{msg.role === 'user' ? 'You' : 'Aussie'}</span>
+                        )}
                         <span className="text-[10px] text-gray-600">{new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                     </div>
 
@@ -53,7 +62,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onQuickA
                         max-w-[95%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm relative group
                         ${msg.role === 'user' 
                             ? 'bg-[#2f81f7] text-white rounded-tr-none' 
-                            : 'bg-[#1f2428] text-gray-300 border border-gray-800 rounded-tl-none'}
+                            : msg.role === 'system' 
+                                ? 'bg-[#161b22] border border-gray-700 text-gray-300 rounded-tl-none'
+                                : 'bg-[#1f2428] text-gray-300 border border-gray-800 rounded-tl-none'}
                     `}>
                          <div className="prose prose-invert max-w-none prose-p:my-1 prose-pre:bg-[#0d1117] prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-lg prose-code:text-aussie-400 prose-code:bg-black/20 prose-code:px-1 prose-code:rounded prose-a:text-blue-400 text-[13px]">
                             <ReactMarkdown>{msg.text}</ReactMarkdown>

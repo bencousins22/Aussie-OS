@@ -7,19 +7,26 @@
     <title>Aussie OS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // Polyfill process.env for the browser with the user-provided Gemini API Key
+        window.process = {
+            env: {
+                API_KEY: 'AIzaSyCOUmozkoir9A1uUIGoaZ_L1pjyDLWWucACan'
+            }
+        };
+
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
                         os: {
-                            bg: '#0f1115',
+                            bg: '#0a0c10', // Darker background
                             panel: '#161b22',
-                            border: '#30363d',
+                            border: '#21262d', // Softer border
                             active: '#1f2428',
                             accent: '#2f81f7',
-                            text: '#c9d1d9',
-                            textDim: '#8b949e'
+                            text: '#e6edf3', // Brighter text
+                            textDim: '#8d96a0'
                         },
                         aussie: {
                             500: '#2f81f7', 
@@ -29,29 +36,36 @@
                     fontFamily: {
                         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
                         sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'subtle-pulse': 'subtle-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        'subtle-pulse': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: .7 },
+                        }
                     }
                 }
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0f1115; color: #c9d1d9; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #0a0c10; color: #e6edf3; overflow: hidden; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         
-        /* OS Scrollbars - Thinner & Darker for Pro Look */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #2d333b; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #444c56; }
+        ::-webkit-scrollbar-thumb { background: #21262d; border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+        ::-webkit-scrollbar-thumb:hover { background: #30363d; background-clip: content-box; }
         
         .monaco-editor-container { height: 100%; width: 100%; }
         
-        /* Glassmorphism utilities */
         .glass {
-            background: rgba(22, 27, 34, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(22, 27, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
         }
     </style>
 <script type="importmap">

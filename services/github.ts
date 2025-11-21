@@ -1,91 +1,84 @@
 
-import { fs } from './fileSystem';
-import { bus } from './eventBus';
+import { notify } from './notification';
 
-/**
- * GitHub A2A Integration Manager
- * Simulates the Agent-to-Agent collaboration system.
- * Allows the Agent to perform Git/GitHub operations within the OS.
- */
-export class GitHubA2AIntegrationManager {
-    private repoCache: Map<string, any> = new Map();
+const GITHUB_API = 'https://api.github.com';
+const TOKEN_KEY = 'aussie_os_github_pat';
+
+class GitHubService {
+    private token: string | null = null;
 
     constructor() {
-        // Initialize with a simulated repo structure if needed
+        this.loadToken();
     }
 
-    public async processOperation(op: string, dataStr: string): Promise<any> {
+    private loadToken() {
+        this.token = localStorage.getItem(TOKEN_KEY);
+    }
+
+    public saveToken(token: string) {
+        this.token = token;
+        localStorage.setItem(TOKEN_KEY, token);
+    }
+
+    public hasToken(): boolean {
+        return !!this.token;
+    }
+
+    private async request(endpoint: string, options: RequestInit = {}) {
+        if (!this.token) {
+            throw new Error("GitHub token not set. Please add it in Settings.");
+        }
+
+        const headers = {
+            'Authorization': `Bearer ${this.token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
+
+        const response = await fetch(`${GITHUB_API}${endpoint}`, { ...options, headers });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `GitHub API request failed with status ${response.status}`);
+        }
+
+        return response.json();
+    }
+
+    public async getUser() {
+        return this.request('/user');
+    }
+
+    public async getRepo(repoFullName: string) {
+        return this.request(`/repos/${repoFullName}`);
+    }
+    
+    // ProcessOperation is now a high-level wrapper around the API
+    public async processOperation(op: string, dataStr: string) {
         let data;
-        try {
-            data = JSON.parse(dataStr);
-        } catch (e) {
-            return { error: "Invalid JSON data" };
-        }
-
-        bus.emit('shell-output', `[GitHub A2A] Processing ${op}...`);
-
+        try { data = JSON.parse(dataStr); } catch (e) { return { error: "Invalid JSON data" }; }
+        
+        notify.info("GitHub", `Processing operation: ${op}`);
+        
         switch (op) {
-            case 'pr_create': return this.createPR(data);
-            case 'pr_review': return this.reviewPR(data);
-            case 'issue_create': return this.createIssue(data);
-            case 'repo_sync': return this.syncRepo(data);
-            default: return { error: "Unknown operation" };
+            case 'repo_sync':
+                // This is a more complex operation involving multiple git commands,
+                // better handled by the agent using the shell. This is a simplified API version.
+                return await this.getRepo(data.repo);
+
+            case 'issue_create':
+                return await this.request(`/repos/${data.repo}/issues`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: data.title,
+                        body: data.body,
+                    }),
+                });
+            default:
+                throw new Error(`Operation ${op} not supported via direct API call.`);
         }
-    }
-
-    private async createPR(data: any) {
-        // Simulate PR creation by creating a metadata file in the FS
-        const prId = Math.floor(Math.random() * 1000);
-        const prPath = `/workspace/.github/prs/${prId}.json`;
-        
-        if (!fs.exists('/workspace/.github/prs')) {
-            fs.mkdir('/workspace/.github/prs');
-        }
-
-        const prContent = {
-            id: prId,
-            title: data.title,
-            branch: data.branch,
-            status: 'open',
-            created_at: Date.now(),
-            ...data
-        };
-
-        fs.writeFile(prPath, JSON.stringify(prContent, null, 2));
-        return { status: "success", pr_id: prId, message: `PR #${prId} created successfully.` };
-    }
-
-    private async reviewPR(data: any) {
-        // Simulate AI Agent Review
-        await new Promise(r => setTimeout(r, 1000));
-        return { 
-            status: "success", 
-            verdict: "approved", 
-            comments: [
-                "Code style looks compliant.",
-                "Tests passed in virtual environment."
-            ] 
-        };
-    }
-
-    private async createIssue(data: any) {
-        const issueId = Math.floor(Math.random() * 1000);
-        const path = `/workspace/.github/issues/${issueId}.json`;
-        
-        if (!fs.exists('/workspace/.github/issues')) {
-            fs.mkdir('/workspace/.github/issues');
-        }
-
-        fs.writeFile(path, JSON.stringify({ ...data, id: issueId, status: 'open' }, null, 2));
-        return { status: "success", issue_id: issueId };
-    }
-
-    private async syncRepo(data: any) {
-        // Simulate fetching remote updates
-        bus.emit('shell-output', `[GitHub A2A] Syncing ${data.repo || 'current repo'}...`);
-        await new Promise(r => setTimeout(r, 1500));
-        return { status: "success", synced_commits: 3, message: "Repository synced with upstream." };
     }
 }
 
-export const github = new GitHubA2AIntegrationManager();
+export const github = new GitHubService();

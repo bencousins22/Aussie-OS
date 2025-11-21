@@ -7,6 +7,7 @@ export interface Message {
     text: string;
     timestamp: number;
     attachments?: string[];
+    sender?: string; // Name of the specific agent/service
 }
 
 export interface FileNode {
@@ -52,8 +53,6 @@ export interface ShellResult {
     exitCode: number;
 }
 
-// --- Flow / Jules Types ---
-
 export type FlowNodeType = 'trigger' | 'action' | 'decision' | 'end';
 
 export interface FlowNode {
@@ -86,16 +85,12 @@ export interface JulesState {
     logs: string[];
 }
 
-// --- Event Bus Types ---
-
-export type SystemEventType = 'file-change' | 'shell-output' | 'browser-navigate' | 'browser-action' | 'notification' | 'task-run' | 'task-complete';
+export type SystemEventType = 'file-change' | 'shell-output' | 'browser-navigate' | 'browser-action' | 'notification' | 'task-run' | 'task-complete' | 'agent-message';
 
 export interface SystemEvent {
     type: SystemEventType;
     payload: any;
 }
-
-// --- Browser Types ---
 
 export interface BrowserState {
     url: string;
@@ -103,14 +98,12 @@ export interface BrowserState {
     isLoading: boolean;
 }
 
-// --- Swarm Types ---
 export interface AgentState {
     id: number;
     status: 'idle' | 'working' | 'success' | 'failed';
     output?: string;
 }
 
-// --- Notification Types ---
 export interface Notification {
     id: string;
     title: string;
@@ -119,7 +112,6 @@ export interface Notification {
     timestamp: number;
 }
 
-// --- Automation Types ---
 export interface BrowserAction {
     type: 'goto' | 'click' | 'type' | 'screenshot' | 'scrape';
     selector?: string;
@@ -127,25 +119,39 @@ export interface BrowserAction {
     url?: string;
 }
 
-// --- Scheduler Types ---
 export interface ScheduledTask {
     id: string;
     name: string;
     type: 'command' | 'swarm' | 'flow';
-    action: string; // Command string, Swarm Objective, or Flow ID
+    action: string;
     schedule: 'once' | 'hourly' | 'daily' | 'interval';
-    intervalSeconds?: number; // If schedule is interval
+    intervalSeconds?: number;
     lastRun?: number;
     nextRun: number;
     status: 'active' | 'paused' | 'completed';
     lastResult?: string;
 }
 
-// --- GitHub Types ---
 export interface GitStatusItem {
     path: string;
     status: 'modified' | 'new' | 'deleted' | 'unmodified';
     staged: boolean;
 }
 
-export type MainView = 'dashboard' | 'code' | 'flow' | 'browser' | 'scheduler' | 'github';
+// --- RENDER.COM DEPLOYMENT ---
+export type DeployStatus = 'pending' | 'build_started' | 'build_success' | 'deploy_started' | 'live' | 'failed' | 'canceled';
+
+export interface DeployLog {
+    timestamp: number;
+    line: string;
+}
+
+export interface DeployState {
+    id: string | null;
+    status: DeployStatus;
+    logs: DeployLog[];
+    url: string | null;
+}
+
+
+export type MainView = 'dashboard' | 'code' | 'flow' | 'browser' | 'scheduler' | 'github' | 'settings' | 'deploy';

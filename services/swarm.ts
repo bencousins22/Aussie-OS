@@ -22,12 +22,15 @@ class SwarmOrchestrator {
             ...config
         };
 
+        const swarmType = conf.enableQuantum ? 'Quantum Swarm' : 'Standard Swarm';
+        
         bus.emit('shell-output', `[Swarm] Initializing ${conf.topology} swarm with ${conf.enableQuantum ? 'Quantum' : 'Standard'} optimization...`);
-        bus.emit('shell-output', `[Swarm] Task: ${task} (${type})`);
+        bus.emit('agent-message', { agent: 'Hive Mind', text: `Initializing ${swarmType} for task: "${task}"...` });
 
         // 1. Spawn Agents
         const agentCount = conf.enableQuantum ? 5 : 3;
         bus.emit('shell-output', `[Swarm] Spawning ${agentCount} autonomous agents...`);
+        bus.emit('agent-message', { agent: 'Hive Mind', text: `Spawning ${agentCount} autonomous agents in ${conf.topology} topology.` });
         
         const agents = Array(agentCount).fill(0).map((_, i) => ({ id: i, status: 'idle' }));
         
@@ -43,12 +46,15 @@ class SwarmOrchestrator {
         bus.emit('shell-output', `[Swarm] Consensus Reached: ${(agreement * 100).toFixed(1)}% agreement.`);
 
         if (agreement >= conf.consensusThreshold) {
+            const msg = `Consensus reached (${(agreement * 100).toFixed(0)}%). Task completed successfully.`;
+            bus.emit('agent-message', { agent: 'Hive Mind', text: `✅ ${msg}` });
             return { 
                 status: 'success', 
                 message: `Task completed by swarm. ${successCount}/${agentCount} agents verified result.`,
                 details: results[0].output
             };
         } else {
+             bus.emit('agent-message', { agent: 'Hive Mind', text: `❌ Consensus failed. Only ${(agreement * 100).toFixed(0)}% agreement.` });
              return { 
                 status: 'failure', 
                 message: `Swarm failed to reach consensus.`,
