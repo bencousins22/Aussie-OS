@@ -160,67 +160,73 @@ const App: React.FC = () => {
                     
                     {/* Persistent Chat Column */}
                     {/* On Mobile: It's a full screen drawer z-40. On Desktop: It's a resizable column. */}
-                    <div className={`
-                        ${isMobile 
-                            ? `absolute inset-0 z-40 bg-[#0f1216] transition-transform duration-300 ${chatOpen ? 'translate-x-0' : '-translate-x-full'}` 
-                            : `relative flex-col border-r border-os-border bg-[#0f1216] ${chatOpen ? 'flex w-[360px]' : 'hidden'}`}
-                        flex flex-col shrink-0 shadow-2xl
-                    `}>
-                        {/* Chat Header */}
-                        <div className="h-12 border-b border-os-border flex items-center justify-between px-4 bg-os-panel shrink-0">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-2 h-2 rounded-full shadow-[0_0_10px] transition-all ${isProcessing || isLive ? 'bg-aussie-500 animate-pulse shadow-aussie-500' : 'bg-aussie-500 shadow-aussie-500/50'}`} />
-                                <span className="font-bold text-sm text-white tracking-wide">Aussie Agent</span>
+                    <div 
+                        className={`
+                            ${isMobile 
+                                ? `absolute inset-0 z-40 bg-[#0f1216] transition-transform duration-300 ${chatOpen ? 'translate-x-0' : '-translate-x-full'}` 
+                                : `relative flex flex-row bg-[#0f1216] ${chatOpen ? 'flex' : 'hidden'}`}
+                            flex shrink-0 shadow-2xl
+                        `}
+                        style={!isMobile ? { width: 360 } : {}}
+                    >
+                        {/* Chat Content Column */}
+                        <div className="flex flex-col flex-1 min-w-0 h-full border-r border-os-border bg-[#0f1216]">
+                            {/* Chat Header */}
+                            <div className="h-12 border-b border-os-border flex items-center justify-between px-4 bg-os-panel shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-2 h-2 rounded-full shadow-[0_0_10px] transition-all ${isProcessing || isLive ? 'bg-aussie-500 animate-pulse shadow-aussie-500' : 'bg-aussie-500 shadow-aussie-500/50'}`} />
+                                    <span className="font-bold text-sm text-white tracking-wide">Aussie Agent</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <AgentStatus state={workflowPhase} />
+                                    {isMobile && (
+                                        <button onClick={() => setChatOpen(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <AgentStatus state={workflowPhase} />
-                                {isMobile && (
-                                    <button onClick={() => setChatOpen(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors">
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                        
-                        {/* Chat Messages */}
-                        <ChatInterface messages={messages} onQuickAction={handleSendMessage} />
-                        
-                        {/* Chat Input */}
-                        <div className="p-4 border-t border-os-border bg-[#0f1216] shrink-0">
-                            <div className="relative group">
-                                <textarea
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
-                                    }}
-                                    placeholder={isLive ? "Listening..." : "Ask Aussie..."}
-                                    disabled={isLive}
-                                    className="w-full bg-os-panel text-os-text text-sm p-4 pb-12 rounded-xl border border-os-border focus:border-aussie-500/50 outline-none resize-none h-32 font-medium shadow-inner transition-all disabled:opacity-50 placeholder-gray-600"
-                                />
-                                <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                                    <button
-                                        onClick={toggleLive}
-                                        className={`p-2 rounded-lg transition-all ${isLive ? 'bg-red-500/20 text-red-500 animate-pulse border border-red-500' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'}`}
-                                        title="Toggle Gemini Live (Voice Mode)"
-                                    >
-                                        {isLive ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-                                    </button>
-                                    <button 
-                                        onClick={() => handleSendMessage()}
-                                        disabled={isProcessing || isLive || !input.trim()}
-                                        className="p-2 bg-aussie-500 hover:bg-aussie-600 text-[#0f1216] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95 shadow-lg shadow-aussie-500/20"
-                                    >
-                                        <Play className="w-3 h-3 fill-current" />
-                                    </button>
+                            
+                            {/* Chat Messages */}
+                            <ChatInterface messages={messages} onQuickAction={handleSendMessage} />
+                            
+                            {/* Chat Input */}
+                            <div className="p-4 border-t border-os-border bg-[#0f1216] shrink-0">
+                                <div className="relative group">
+                                    <textarea
+                                        value={input}
+                                        onChange={(e) => setInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
+                                        }}
+                                        placeholder={isLive ? "Listening..." : "Ask Aussie..."}
+                                        disabled={isLive}
+                                        className="w-full bg-os-panel text-os-text text-sm p-4 pb-12 rounded-xl border border-os-border focus:border-aussie-500/50 outline-none resize-none h-32 font-medium shadow-inner transition-all disabled:opacity-50 placeholder-gray-600"
+                                    />
+                                    <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                                        <button
+                                            onClick={toggleLive}
+                                            className={`p-2 rounded-lg transition-all ${isLive ? 'bg-red-500/20 text-red-500 animate-pulse border border-red-500' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'}`}
+                                            title="Toggle Gemini Live (Voice Mode)"
+                                        >
+                                            {isLive ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                                        </button>
+                                        <button 
+                                            onClick={() => handleSendMessage()}
+                                            disabled={isProcessing || isLive || !input.trim()}
+                                            className="p-2 bg-aussie-500 hover:bg-aussie-600 text-[#0f1216] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95 shadow-lg shadow-aussie-500/20"
+                                        >
+                                            <Play className="w-3 h-3 fill-current" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
-                        {/* Resizer Handle (Desktop Only) - Uses 'parent' mode to resize the Chat div itself */}
-                        {!isMobile && <div className="absolute right-0 top-0 bottom-0 z-50 w-1 hover:bg-aussie-500/50 cursor-col-resize">
+                        {/* Resizer Handle (Desktop Only) */}
+                        {!isMobile && (
                             <Resizable direction="horizontal" mode="parent" minSize={300} maxSize={600} />
-                        </div>}
+                        )}
                     </div>
 
                     {/* MAIN WORKSPACE (CENTER/RIGHT) */}
