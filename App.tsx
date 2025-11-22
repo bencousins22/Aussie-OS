@@ -217,8 +217,10 @@ const App: React.FC = () => {
                             </div>
                         </div>
                         
-                        {/* Resizer Handle (Desktop Only) */}
-                        {!isMobile && <div className="absolute right-0 top-0 bottom-0 z-50"><Resizable direction="horizontal" mode="parent" minSize={300} maxSize={600} /></div>}
+                        {/* Resizer Handle (Desktop Only) - Uses 'parent' mode to resize the Chat div itself */}
+                        {!isMobile && <div className="absolute right-0 top-0 bottom-0 z-50 w-1 hover:bg-aussie-500/50 cursor-col-resize">
+                            <Resizable direction="horizontal" mode="parent" minSize={300} maxSize={600} />
+                        </div>}
                     </div>
 
                     {/* MAIN WORKSPACE (CENTER/RIGHT) */}
@@ -260,7 +262,7 @@ const App: React.FC = () => {
                             {/* Integrated Code Workspace */}
                             {activeView === 'code' && (
                                 <div className="flex h-full w-full">
-                                    {/* Editor + Terminal Column */}
+                                    {/* Editor + Terminal Column (Flex-1) */}
                                     <div className="flex-1 flex flex-col min-w-0 relative">
                                         {/* Tabs */}
                                         <div className="h-9 flex bg-[#0f1216] border-b border-os-border shrink-0">
@@ -291,25 +293,26 @@ const App: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        {/* Editor Surface */}
+                                        {/* Editor Surface (Top Half) */}
                                         <div className="flex-1 flex min-h-0 relative bg-[#0d1117]">
                                             {/* Monaco Editor */}
-                                            <div className="flex-1 relative">
+                                            <div className="flex-1 relative min-w-0">
                                                 <MonacoEditor filePath={activeTab?.path || null} language={activeTab?.language || 'plaintext'} />
                                             </div>
                                             
                                             {/* Split Preview Pane (Browser/Media) */}
                                             {showPreview && (
                                                 <>
-                                                    <div className="relative z-20 w-1 bg-os-border hover:bg-aussie-500 transition-colors cursor-col-resize flex-shrink-0">
+                                                    {/* Resizer for Preview Pane */}
+                                                    {!isMobile && (
                                                         <Resizable direction="horizontal" mode="next" reversed={true} />
-                                                    </div>
-                                                    <div className="w-1/2 flex flex-col border-l border-os-border bg-[#0f1216] relative z-10 min-w-[300px]">
+                                                    )}
+                                                    <div className="w-[400px] flex flex-col border-l border-os-border bg-[#0f1216] relative z-10 min-w-[300px] max-w-[80%]">
                                                         <div className="h-8 bg-os-panel border-b border-os-border flex items-center px-4 justify-between shrink-0">
                                                             <span className="text-[10px] font-bold text-aussie-500 uppercase tracking-wider">Artifact Preview</span>
                                                             <button onClick={() => setShowPreview(false)}><X className="w-3 h-3 text-gray-500 hover:text-white"/></button>
                                                         </div>
-                                                        <div className="flex-1 relative">
+                                                        <div className="flex-1 relative overflow-hidden">
                                                             {mediaFile ? (
                                                                 <MediaPlayer file={mediaFile} onClose={() => setMediaFile(null)} />
                                                             ) : (
@@ -321,11 +324,9 @@ const App: React.FC = () => {
                                             )}
                                         </div>
 
-                                        {/* Terminal Area */}
-                                        <div className="relative z-20 h-1 bg-os-border hover:bg-aussie-500 transition-colors cursor-row-resize flex-shrink-0">
-                                            <Resizable direction="vertical" mode="next" reversed={true} />
-                                        </div>
-                                        <div className="h-[280px] flex flex-col bg-os-bg shrink-0">
+                                        {/* Terminal Area (Bottom Half) */}
+                                        {!isMobile && <Resizable direction="vertical" mode="next" reversed={true} />}
+                                        <div className="h-[280px] flex flex-col bg-os-bg shrink-0 min-h-[100px] max-h-[80vh]">
                                             <div className="h-8 flex items-center px-2 border-b border-os-border gap-4 bg-os-panel shrink-0">
                                                 <PanelTab title="Terminal" active={activePanel === 'terminal'} onClick={() => setActivePanel('terminal')} />
                                                 <PanelTab title="Problems" active={activePanel === 'problems'} onClick={() => setActivePanel('problems')} />
@@ -342,12 +343,14 @@ const App: React.FC = () => {
                                     </div>
 
                                     {/* File Explorer (Right Side) */}
-                                    <div className="relative z-20 w-1 bg-os-border hover:bg-aussie-500 transition-colors cursor-col-resize flex-shrink-0 hidden md:block">
-                                        <Resizable direction="horizontal" mode="next" reversed={true} />
-                                    </div>
-                                    <div className="w-64 border-l border-os-border flex flex-col bg-os-bg shrink-0 hidden md:flex">
-                                        <FileExplorer onFileClick={(path) => { openFile(path); handleNavigate('code'); }} />
-                                    </div>
+                                    {!isMobile && (
+                                        <>
+                                            <Resizable direction="horizontal" mode="next" reversed={true} />
+                                            <div className="w-64 border-l border-os-border flex flex-col bg-os-bg shrink-0 min-w-[200px] max-w-[500px]">
+                                                <FileExplorer onFileClick={(path) => { openFile(path); handleNavigate('code'); }} />
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>
