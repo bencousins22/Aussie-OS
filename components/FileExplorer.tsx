@@ -19,7 +19,6 @@ const EXPANDED_KEY = 'aussie_os_expanded_folders';
 
 export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
     const [items, setItems] = useState<FileStat[]>([]);
-    // Initialize expansion state from localStorage
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
         try {
             const saved = localStorage.getItem(EXPANDED_KEY);
@@ -32,6 +31,10 @@ export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
     const [creating, setCreating] = useState<{ parentPath: string, type: 'file' | 'directory' } | null>(null);
     const [newItemName, setNewItemName] = useState('');
     const newItemInputRef = useRef<HTMLInputElement>(null);
+    
+    // DnD State
+    const [draggedItem, setDraggedItem] = useState<string | null>(null);
+    const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
 
     const fetchFiles = (path: string): FileStat[] => {
         try {
@@ -45,16 +48,9 @@ export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
     };
 
     const refresh = () => {
-        // Trigger re-render by fetching (state update driven by parent or interval in real app usually, 
-        // but here we force update by setting items if we were using items state for root, 
-        // but we generate tree dynamically. 
-        // We can force update by toggling a dummy state or just relying on the interval.)
-        // In this component structure, fetchFiles is called during render for the tree.
-        // We just need to trigger a re-render.
         setItems(fetchFiles('/workspace'));
     };
 
-    // Persist expansion state
     useEffect(() => {
         try {
             localStorage.setItem(EXPANDED_KEY, JSON.stringify(Array.from(expandedFolders)));
@@ -96,13 +92,11 @@ export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
 
     const handleCreate = (type: 'file' | 'directory') => {
         if (!contextMenu) return;
-        // If clicked on file, use parent dir. If folder, use that folder.
         const parentPath = contextMenu.type === 'file' 
             ? contextMenu.path.substring(0, contextMenu.path.lastIndexOf('/')) 
             : contextMenu.path;
         
         setCreating({ parentPath, type });
-        // Ensure parent is expanded so we see the new item input
         setExpandedFolders(prev => new Set(prev).add(parentPath));
         setContextMenu(null);
     };
@@ -138,43 +132,88 @@ export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
         setNewItemName('');
     };
 
+    // DnD Handlers
+    const handleDragStart = (e: React.DragEvent, path: string) => {
+        e.dataTransfer.setData('text/plain', path);
+        setDraggedItem(path);
+    };
+
+    const handleDragOver = (e: React.DragEvent, path: string, type: 'file' | 'directory') => {
+        e.preventDefault();
+        if (type === 'directory' && draggedItem !== path) {
+            setDragOverFolder(path);
+        }
+    };
+
+    const handleDragLeave = () => {
+        setDragOverFolder(null);
+    };
+
+    const handleDrop = (e: React.DragEvent, targetPath: string) => {
+        e.preventDefault();
+        setDragOverFolder(null);
+        const sourcePath = e.dataTransfer.getData('text/plain');
+        
+        if (sourcePath && sourcePath !== targetPath) {
+            try {
+                const fileName = sourcePath.split('/').pop();
+                const destPath = `${targetPath}/${fileName}`;
+                fs.move(sourcePath, destPath);
+                refresh();
+            } catch (err) {
+                console.error("Move failed", err);
+            }
+        }
+        setDraggedItem(null);
+    };
+
     const FileTreeItem: React.FC<{ path: string, depth: number }> = ({ path, depth }) => {
         const files = fetchFiles(path);
-        // Determine if we are creating something inside this folder
         const isCreatingHere = creating && creating.parentPath === path;
 
         return (
             <div className="flex flex-col">
-                {files.map(file => (
-                    <div key={file.path}>
-                        <div 
-                            className="flex items-center gap-1.5 py-1 px-2 hover:bg-os-panel cursor-pointer text-[13px] text-os-textDim hover:text-white select-none transition-colors group relative border-l-2 border-transparent hover:border-aussie-500/50"
-                            style={{ paddingLeft: `${depth * 12 + 12}px` }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (file.type === 'directory') toggleFolder(file.path);
-                                else onFileClick(file.path);
-                            }}
-                            onContextMenu={(e) => handleContextMenu(e, file.path, file.type)}
-                        >
-                            {file.type === 'directory' && (
-                                expandedFolders.has(file.path) ? 
-                                <ChevronDown className="w-3 h-3 text-os-textDim shrink-0" /> : 
-                                <ChevronRight className="w-3 h-3 text-os-textDim shrink-0" />
+                {files.map(file => {
+                    const isOver = dragOverFolder === file.path;
+                    
+                    return (
+                        <div key={file.path}>
+                            <div 
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, file.path)}
+                                onDragOver={(e) => handleDragOver(e, file.path, file.type)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => file.type === 'directory' ? handleDrop(e, file.path) : undefined}
+                                className={`
+                                    flex items-center gap-1.5 py-1 px-2 cursor-pointer text-[13px] select-none transition-colors group relative border-l-2
+                                    ${isOver ? 'bg-aussie-500/20 border-aussie-500 text-white' : 'hover:bg-os-panel border-transparent hover:border-aussie-500/50 text-os-textDim hover:text-white'}
+                                `}
+                                style={{ paddingLeft: `${depth * 12 + 12}px` }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (file.type === 'directory') toggleFolder(file.path);
+                                    else onFileClick(file.path);
+                                }}
+                                onContextMenu={(e) => handleContextMenu(e, file.path, file.type)}
+                            >
+                                {file.type === 'directory' && (
+                                    expandedFolders.has(file.path) ? 
+                                    <ChevronDown className="w-3 h-3 text-os-textDim shrink-0" /> : 
+                                    <ChevronRight className="w-3 h-3 text-os-textDim shrink-0" />
+                                )}
+                                {file.type === 'directory' ? 
+                                    (expandedFolders.has(file.path) ? <FolderOpen className="w-4 h-4 text-aussie-500 shrink-0" /> : <Folder className="w-4 h-4 text-aussie-500 shrink-0" />) :
+                                    <File className="w-4 h-4 text-blue-400 shrink-0" />
+                                }
+                                <span className="truncate opacity-90 flex-1">{file.name}</span>
+                            </div>
+                            {file.type === 'directory' && expandedFolders.has(file.path) && (
+                                 <FileTreeItem path={file.path} depth={depth + 1} />
                             )}
-                            {file.type === 'directory' ? 
-                                (expandedFolders.has(file.path) ? <FolderOpen className="w-4 h-4 text-aussie-500 shrink-0" /> : <Folder className="w-4 h-4 text-aussie-500 shrink-0" />) :
-                                <File className="w-4 h-4 text-blue-400 shrink-0" />
-                            }
-                            <span className="truncate opacity-90 flex-1">{file.name}</span>
                         </div>
-                        {file.type === 'directory' && expandedFolders.has(file.path) && (
-                             <FileTreeItem path={file.path} depth={depth + 1} />
-                        )}
-                    </div>
-                ))}
+                    );
+                })}
                 
-                {/* Inline Creation Input */}
                 {isCreatingHere && (
                     <div className="flex items-center gap-1.5 py-1 px-2 animate-in fade-in slide-in-from-left-1 duration-200" style={{ paddingLeft: `${(depth + 1) * 12 + 12}px` }}>
                         {creating.type === 'directory' ? <Folder className="w-4 h-4 text-aussie-500" /> : <File className="w-4 h-4 text-blue-400" />}
@@ -208,7 +247,6 @@ export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
                 <FileTreeItem path="/workspace" depth={0} />
             </div>
 
-            {/* Context Menu */}
             {contextMenu && (
                 <div 
                     className="fixed z-[9999] w-40 bg-os-panel border border-os-border shadow-2xl rounded-lg py-1 flex flex-col animate-in fade-in zoom-in duration-100"

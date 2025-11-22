@@ -370,6 +370,47 @@ export const useAgent = () => {
         else notify.info("Text-to-Speech", "Voice output disabled.");
     };
 
+    const clearMessages = () => {
+        setMessages([]);
+    };
+
+    const handleFileUpload = async (file: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target?.result;
+            if (typeof content === 'string') {
+                const uploadsDir = '/workspace/uploads';
+                if (!fs.exists(uploadsDir)) fs.mkdir(uploadsDir);
+                
+                const path = `${uploadsDir}/${file.name}`;
+                
+                // Determine if binary or text based on type?
+                // For now assuming text content or base64 data url from FileReader
+                fs.writeFile(path, content);
+                
+                const msg: Message = {
+                    id: uuid(),
+                    role: 'user',
+                    text: `Uploaded file: ${file.name}`,
+                    attachments: [file.name],
+                    timestamp: Date.now()
+                };
+                setMessages(prev => [...prev, msg]);
+                notify.success("File Upload", `${file.name} saved to workspace.`);
+                
+                // Trigger agent to acknowledge
+                processUserMessage(`I have uploaded a file: ${path}. Please analyze it.`);
+            }
+        };
+        
+        // Read as Text for code, DataURL for images
+        if (file.type.startsWith('image/') || file.type.startsWith('audio/') || file.type.startsWith('video/')) {
+            reader.readAsDataURL(file);
+        } else {
+            reader.readAsText(file);
+        }
+    };
+
     // --- EXISTING TEXT CHAT ---
 
     const processUserMessage = async (text: string) => {
@@ -479,6 +520,8 @@ export const useAgent = () => {
         isTtsEnabled,
         toggleLive,
         toggleMute,
-        toggleTts
+        toggleTts,
+        clearMessages,
+        handleFileUpload
     };
 };

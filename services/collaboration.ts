@@ -108,10 +108,13 @@ class CollaborationService {
                     };
                     // Simulate typing event occasionally
                     if (Math.random() > 0.8) {
+                        // SILENCED TO PREVENT CHAT SPAM
+                        /* 
                         bus.emit('agent-message', { 
                             agent: user.name, 
                             text: `Updated ${user.file || 'file'}...` 
                         });
+                        */
                     }
                 } else {
                     user.cursor = undefined;

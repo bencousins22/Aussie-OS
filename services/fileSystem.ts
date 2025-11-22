@@ -237,6 +237,37 @@ class FileSystemService {
         this.delete(path);
     }
 
+    public move(oldPath: string, newPath: string) {
+        if (!this.exists(oldPath)) throw new Error(`Source not found: ${oldPath}`);
+        if (this.exists(newPath)) throw new Error(`Destination exists: ${newPath}`);
+
+        // Read source
+        const node = this.resolveNode(oldPath);
+        if (!node) throw new Error("Node read failed");
+
+        // Write to new location (preserving children/content)
+        // Since our writeFile/mkdir logic is text based for files, we need a deeper struct move.
+        // Simplified for VFS: Read -> Write -> Delete
+        
+        if (node.type === 'file') {
+            this.writeFile(newPath, node.content || '');
+        } else {
+            this.mkdir(newPath);
+            // Recursive move for directory content would be needed here for robust full directory move
+            // For this simplified drag/drop demo, we'll assume files or empty dirs, or handle deeper copy later.
+            // Re-implementing deep copy logic:
+            if (node.children) {
+                node.children.forEach((child, name) => {
+                    this.move(`${oldPath}/${name}`, `${newPath}/${name}`);
+                });
+            }
+        }
+        
+        this.delete(oldPath);
+        bus.emit('file-change', { path: oldPath });
+        bus.emit('file-change', { path: newPath });
+    }
+
     public get gitFs() {
         if (this._gitFsInterface) return this._gitFsInterface;
         

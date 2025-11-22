@@ -211,3 +211,39 @@ export interface DesktopItem {
     x?: number;
     y?: number;
 }
+
+export type WidgetType = 'clock' | 'system' | 'network' | 'weather' | 'note' | 'todo';
+
+export interface Widget {
+    id: string;
+    type: WidgetType;
+    x: number;
+    y: number;
+    data?: any;
+}
+
+export interface DashboardState {
+    wallpaper: string;
+    widgets: Widget[];
+}
+
+export interface Billing {
+    plan: 'free' | 'pro' | 'team';
+    credits: number;
+    usage: number;
+    history: CreditHistory[];
+}
+
+export interface CreditHistory {
+    date: number;
+    amount: number;
+    action: string;
+}
+
+export type ThemePreset = 'vave' | 'dracula' | 'cyberpunk' | 'monokai';
+
+export interface UsageStats {
+    tokensIn: number;
+    tokensOut: number;
+    cost: number;
+}

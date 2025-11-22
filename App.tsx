@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Play, Bot, FileText, CheckCircle, Columns, Mic, MicOff, X, Volume2, VolumeX, Headphones, Folder, Globe } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Bot, FileText, CheckCircle, Columns, Mic, MicOff, X, Volume2, VolumeX, Headphones, Folder, Globe, Trash2, Paperclip } from 'lucide-react';
 import { useAgent } from './services/useAgent';
 import { MonacoEditor } from './components/MonacoEditor';
 import { TerminalView } from './components/TerminalView';
@@ -24,6 +24,7 @@ import { scheduler } from './services/scheduler';
 import { MainView, EditorTab } from './types';
 import { Resizable } from './components/Resizable';
 import { bus } from './services/eventBus';
+import { BottomTicker } from './components/BottomTicker';
 
 const App: React.FC = () => {
     // State
@@ -34,6 +35,8 @@ const App: React.FC = () => {
     const [booting, setBooting] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
     const [chatOpen, setChatOpen] = useState(true); // Mobile Drawer / Desktop Visibility
+    
+    const fileInputRef = useRef<HTMLInputElement>(null);
     
     // Right Panel State (Unified Browser/Explorer)
     const [rightPanelTab, setRightPanelTab] = useState<'files' | 'browser'>('files');
@@ -57,7 +60,9 @@ const App: React.FC = () => {
         isTtsEnabled,
         toggleLive,
         toggleMute,
-        toggleTts
+        toggleTts,
+        clearMessages,
+        handleFileUpload
     } = useAgent();
 
     const handleNavigate = (view: MainView) => {
@@ -192,6 +197,13 @@ const App: React.FC = () => {
                                     >
                                         <Headphones className="w-4 h-4" />
                                     </button>
+                                    <button
+                                        onClick={clearMessages}
+                                        className="p-1.5 rounded-lg transition-all text-gray-400 hover:text-red-400 hover:bg-white/10"
+                                        title="Clear Chat History"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                     
                                     <AgentStatus state={workflowPhase} />
                                     {isMobile && (
@@ -216,7 +228,29 @@ const App: React.FC = () => {
                                         disabled={isLive}
                                         className="w-full bg-os-panel text-os-text text-sm p-4 pb-12 rounded-xl border border-os-border focus:border-aussie-500/50 outline-none resize-none h-32 font-medium shadow-inner transition-all disabled:opacity-50 placeholder-gray-600"
                                     />
+                                    
+                                    {/* Hidden File Input */}
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        className="hidden" 
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                                handleFileUpload(e.target.files[0]);
+                                                e.target.value = ''; // Reset
+                                            }
+                                        }} 
+                                    />
+
                                     <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="p-2 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white border border-gray-700 transition-all"
+                                            title="Upload File to Agent"
+                                        >
+                                            <Paperclip className="w-4 h-4" />
+                                        </button>
+
                                         {isLive && (
                                             <button
                                                 onClick={toggleMute}
@@ -337,7 +371,7 @@ const App: React.FC = () => {
                                     {!isMobile && (
                                         <>
                                             <Resizable direction="horizontal" mode="next" reversed={true} />
-                                            <div className="w-[300px] flex flex-col bg-os-bg shrink-0 min-w-[200px] max-w-[50%] border-l border-os-border">
+                                            <div className="w-[300px] flex flex-col bg-os-bg shrink-0 min-w-[200px] max-w-[50%] border-l border-os-border" style={{ width: 300 }}>
                                                 {/* Right Panel Tabs */}
                                                 <div className="h-9 flex bg-os-panel border-b border-os-border shrink-0">
                                                     <button 
@@ -370,6 +404,7 @@ const App: React.FC = () => {
                                 </div>
                             )}
                         </div>
+                        <BottomTicker />
                     </main>
                 </div>
                 
