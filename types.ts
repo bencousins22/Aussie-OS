@@ -138,7 +138,9 @@ export interface GitStatusItem {
     staged: boolean;
 }
 
-// --- RENDER.COM DEPLOYMENT ---
+// --- DEPLOYMENT ---
+export type DeploymentProvider = 'render' | 'vercel' | 'replit' | 'netlify';
+
 export type DeployStatus = 'pending' | 'build_started' | 'build_success' | 'deploy_started' | 'live' | 'failed' | 'canceled';
 
 export interface DeployLog {
@@ -148,10 +150,10 @@ export interface DeployLog {
 
 export interface DeployState {
     id: string | null;
+    provider: DeploymentProvider;
     status: DeployStatus;
     logs: DeployLog[];
     url: string | null;
 }
-
 
 export type MainView = 'dashboard' | 'code' | 'flow' | 'browser' | 'scheduler' | 'github' | 'settings' | 'deploy';

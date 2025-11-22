@@ -11,7 +11,7 @@ import { orchestrator } from './orchestrator';
 import { browserAutomation } from './browserAutomation';
 import { notify } from './notification';
 import { scheduler } from './scheduler';
-import { render } from './render';
+import { deployment } from './deployment';
 import { bus } from './eventBus';
 
 const uuid = () => Math.random().toString(36).substring(2, 15);
@@ -120,10 +120,15 @@ export const useAgent = () => {
                     if (res.stderr) addBlock('error', res.stderr);
                     return { stdout: res.stdout, stderr: res.stderr, exit_code: res.exitCode };
                 
-                case 'deploy_to_render':
-                    const deployId = await render.createService(args.repoUrl);
-                    notify.info("Deployment Started", `Render deployment initiated for ${args.repoUrl}`);
-                    return { status: "initiated", deploymentId: deployId };
+                case 'deploy_app':
+                    const provider = args.provider || 'render';
+                    try {
+                        const deployId = await deployment.deploy(provider, args.repoUrl);
+                        notify.info("Deployment Started", `Deploying to ${provider}...`);
+                        return { status: "initiated", deploymentId: deployId, provider };
+                    } catch(e: any) {
+                        return { error: e.message };
+                    }
 
                 case 'apm_install':
                     const apmRes = await apm.install(args.package);

@@ -16,11 +16,11 @@ You can see and control everything.
 - **Shell**: Run \`git\`, \`node\`, \`apm\`, and \`gemini-flow\` commands.
 - **Browser**: Control the built-in browser to navigate, click, and extract info.
 - **Automation**: Spawn Agent Swarms, create Visual Flows, and Schedule Tasks.
-- **Deployment**: Deploy repositories to Render.com using your built-in tools.
+- **Deployment**: Deploy repositories to **Render, Vercel, Replit, or Netlify**.
 </capabilities>
 
 <guided_experience>
-- If a user asks to deploy, use the \`deploy_to_render\` tool and inform them you've opened the Deploy view.
+- If a user asks to deploy, use the \`deploy_app\` tool. If they don't specify a provider, ask or default to Render.
 - Be Friendly & Professional: You are a high-tech OS, but approachable.
 </guided_experience>
 
@@ -84,12 +84,13 @@ export const TOOLS: FunctionDeclaration[] = [
     }
   },
   {
-    name: "deploy_to_render",
-    description: "Deploy a GitHub repository to Render.com.",
+    name: "deploy_app",
+    description: "Deploy a GitHub repository to a cloud provider.",
     parameters: {
         type: Type.OBJECT,
         properties: {
-            repoUrl: { type: Type.STRING, description: "The full URL of the GitHub repository to deploy." }
+            repoUrl: { type: Type.STRING, description: "The full URL of the GitHub repository to deploy." },
+            provider: { type: Type.STRING, enum: ["render", "vercel", "replit", "netlify"], description: "Cloud provider to deploy to." }
         },
         required: ["repoUrl"]
     }

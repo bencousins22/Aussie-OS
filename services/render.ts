@@ -11,6 +11,7 @@ const RENDER_API_KEY = 'rnd_wiYCof8RUSWKCfwOfnBnT2nJXLRk';
 class RenderService {
     private state: DeployState = {
         id: null,
+        provider: 'render',
         status: 'pending',
         logs: [],
         url: null,
@@ -41,6 +42,7 @@ class RenderService {
         // Reset state
         this.state = {
             id: `dpl-${Math.random().toString(36).substring(2, 11)}`,
+            provider: 'render',
             status: 'pending',
             logs: [],
             url: null,
