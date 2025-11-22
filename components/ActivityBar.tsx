@@ -22,8 +22,8 @@ const buttons = [
 
 export const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onNavigate, onSpotlight }) => {
     return (
-        <div className="w-16 flex flex-col items-center py-5 bg-[#0d1117] border-r border-os-border gap-2 z-30 shrink-0">
-            <div className="w-10 h-10 bg-gradient-to-br from-aussie-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg mb-4 shadow-lg shadow-blue-900/30 cursor-pointer hover:scale-105 transition-transform">
+        <div className="w-16 flex flex-col items-center py-5 bg-os-bg border-r border-os-border gap-2 z-30 shrink-0">
+            <div className="w-10 h-10 bg-aussie-500 rounded-xl flex items-center justify-center text-os-bg font-bold text-lg mb-4 shadow-lg shadow-aussie-500/20 cursor-pointer hover:scale-105 transition-transform">
                 A
             </div>
             
@@ -51,14 +51,14 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onNavigate
 
 const ActivityButton = ({ icon: Icon, active, onClick, tooltip }: any) => (
     <div className="w-full h-12 flex items-center justify-center relative">
-        {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-aussie-500 rounded-r-full" />}
+        {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-aussie-500 rounded-r-full shadow-[0_0_10px] shadow-aussie-500/50" />}
         <button 
             onClick={onClick}
             title={tooltip}
             className={`
                 p-3 rounded-xl transition-all duration-200 group relative
                 ${active 
-                    ? 'text-white bg-white/5' 
+                    ? 'text-aussie-500 bg-aussie-500/10' 
                     : 'text-os-textDim hover:text-white hover:bg-white/5'}
             `}
         >

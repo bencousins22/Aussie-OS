@@ -56,7 +56,7 @@ export const TaskScheduler: React.FC = () => {
                 </div>
                 <button 
                     onClick={() => setShowForm(true)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold flex items-center gap-2 transition-colors"
+                    className="px-4 py-2 bg-aussie-500 hover:bg-aussie-600 text-[#0f1216] rounded-lg font-bold flex items-center gap-2 transition-colors shadow-lg shadow-aussie-500/20"
                 >
                     <Plus className="w-4 h-4" /> New Task
                 </button>
@@ -119,7 +119,7 @@ export const TaskScheduler: React.FC = () => {
                         </div>
                         <div className="flex gap-2 justify-end">
                             <button onClick={() => setShowForm(false)} className="px-3 py-1.5 text-sm text-gray-400 hover:text-white">Cancel</button>
-                            <button onClick={handleAdd} className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded text-sm font-bold">Save Task</button>
+                            <button onClick={handleAdd} className="px-3 py-1.5 bg-aussie-500 hover:bg-aussie-600 text-[#0f1216] rounded text-sm font-bold shadow-lg shadow-aussie-500/20">Save Task</button>
                         </div>
                     </div>
                 )}

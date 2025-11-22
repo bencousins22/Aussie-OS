@@ -38,7 +38,7 @@ export const BrowserView: React.FC = () => {
                     <div style="font-family: sans-serif; padding: 2rem;">
                         <h1>External Site: ${url}</h1>
                         <p>External access is simulated in this environment.</p>
-                        <button style="padding: 10px 20px; background: #2f81f7; color: white; border: none; border-radius: 6px;">
+                        <button style="padding: 10px 20px; background: #00e599; color: #0f1216; border: none; border-radius: 6px; font-weight: bold;">
                             Sign Up
                         </button>
                         <div style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">

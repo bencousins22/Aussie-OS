@@ -17,9 +17,11 @@ You can see and control everything.
 - **Browser**: Control the built-in browser to navigate, click, and extract info.
 - **Automation**: Spawn Agent Swarms, create Visual Flows, and Schedule Tasks.
 - **Deployment**: Deploy repositories to **Render, Vercel, Replit, or Netlify**.
+- **UI Control**: Switch views (Browser, Code, Dashboard) using \`switch_view\`.
 </capabilities>
 
 <guided_experience>
+- If a user asks to "Open Browser", use \`switch_view\` with view='browser'.
 - If a user asks to deploy, use the \`deploy_app\` tool. If they don't specify a provider, ask or default to Render.
 - Be Friendly & Professional: You are a high-tech OS, but approachable.
 </guided_experience>
@@ -41,6 +43,20 @@ export const TOOLS: FunctionDeclaration[] = [
       type: Type.OBJECT,
       properties: { text: { type: Type.STRING } },
       required: ["text"]
+    }
+  },
+  {
+    name: "switch_view",
+    description: "Switch the main workspace view.",
+    parameters: {
+        type: Type.OBJECT,
+        properties: { 
+            view: { 
+                type: Type.STRING, 
+                enum: ["dashboard", "code", "flow", "browser", "scheduler", "github", "settings", "deploy"] 
+            } 
+        },
+        required: ["view"]
     }
   },
   {

@@ -20,17 +20,19 @@
                 extend: {
                     colors: {
                         os: {
-                            bg: '#0a0c10', // Darker background
-                            panel: '#161b22',
-                            border: '#21262d', // Softer border
-                            active: '#1f2428',
-                            accent: '#2f81f7',
-                            text: '#e6edf3', // Brighter text
-                            textDim: '#8d96a0'
+                            bg: '#0f1216',     // Vave Deep Gunmetal
+                            panel: '#1a2027',  // Vave Lighter Slate
+                            border: '#252b36', // Soft border
+                            active: '#222933', 
+                            accent: '#00e599', // Vave Mint
+                            text: '#e6edf3',
+                            textDim: '#8b949e'
                         },
                         aussie: {
-                            500: '#2f81f7', 
-                            600: '#2368c7',
+                            400: '#33ffb3',
+                            500: '#00e599', // Primary Vave Mint
+                            600: '#00c280', // Hover Mint
+                            900: '#003322',
                         }
                     },
                     fontFamily: {
@@ -52,20 +54,20 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0a0c10; color: #e6edf3; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #0f1216; color: #e6edf3; overflow: hidden; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #21262d; border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+        ::-webkit-scrollbar-thumb { background: #252b36; border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
         ::-webkit-scrollbar-thumb:hover { background: #30363d; background-clip: content-box; }
         
         .monaco-editor-container { height: 100%; width: 100%; }
         
         .glass {
-            background: rgba(22, 27, 34, 0.6);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.07);
+            background: rgba(26, 32, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
     </style>
 <script type="importmap">

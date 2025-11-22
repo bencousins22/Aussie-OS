@@ -85,7 +85,7 @@ export interface JulesState {
     logs: string[];
 }
 
-export type SystemEventType = 'file-change' | 'shell-output' | 'browser-navigate' | 'browser-action' | 'notification' | 'task-run' | 'task-complete' | 'agent-message';
+export type SystemEventType = 'file-change' | 'shell-output' | 'browser-navigate' | 'browser-action' | 'notification' | 'task-run' | 'task-complete' | 'agent-message' | 'switch-view';
 
 export interface SystemEvent {
     type: SystemEventType;
@@ -157,3 +157,10 @@ export interface DeployState {
 }
 
 export type MainView = 'dashboard' | 'code' | 'flow' | 'browser' | 'scheduler' | 'github' | 'settings' | 'deploy';
+
+export interface ContextMenuState {
+    x: number;
+    y: number;
+    path: string;
+    type: 'file' | 'directory';
+}

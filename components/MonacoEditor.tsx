@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { fs } from '../services/fileSystem';
@@ -27,25 +28,48 @@ export const MonacoEditor: React.FC<Props> = ({ filePath, language }) => {
     const handleEditorChange = (value: string | undefined) => {
         if (filePath && value !== undefined) {
             // Direct write to FS
-            // In a real app, we might want 'unsaved' state, but for 'Real Deal' direct manipulation:
             fs.writeFile(filePath, value);
         }
     };
 
     const handleEditorDidMount: OnMount = (editor, monaco) => {
         editorRef.current = editor;
-        // Add Command S save support (optional since we auto-save above)
+        
+        // Define Aussie OS Theme
+        monaco.editor.defineTheme('aussie-dark', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [
+                { token: 'comment', foreground: '6a737d' },
+                { token: 'keyword', foreground: '00e599' }, // Mint
+                { token: 'string', foreground: 'a5d6ff' },
+                { token: 'number', foreground: '79c0ff' },
+                { token: 'type', foreground: '00e599' }
+            ],
+            colors: {
+                'editor.background': '#0d1117', // OS Panel Color
+                'editor.foreground': '#e6edf3',
+                'editor.lineHighlightBackground': '#161b22',
+                'editorCursor.foreground': '#00e599',
+                'editor.selectionBackground': '#00e59930',
+                'editorLineNumber.foreground': '#484f58',
+                'editorLineNumber.activeForeground': '#00e599'
+            }
+        });
+        
+        monaco.editor.setTheme('aussie-dark');
+
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-            // Visual feedback for save could go here
+            // Auto-save visual feedback could happen here
         });
     };
 
     if (!filePath) {
         return (
-            <div className="flex items-center justify-center h-full bg-[#1e1e1e] text-gray-500">
+            <div className="flex items-center justify-center h-full bg-[#0d1117] text-gray-500">
                 <div className="text-center">
-                    <div className="text-6xl mb-4 opacity-20">⌘</div>
-                    <p>No file open</p>
+                    <div className="text-6xl mb-4 opacity-20 text-aussie-500">⌘</div>
+                    <p className="text-xs font-mono text-aussie-500/50">NO_ACTIVE_BUFFER</p>
                 </div>
             </div>
         );
@@ -56,17 +80,21 @@ export const MonacoEditor: React.FC<Props> = ({ filePath, language }) => {
             height="100%"
             language={language}
             value={content}
-            theme="vs-dark"
+            theme="aussie-dark"
             onChange={handleEditorChange}
             onMount={handleEditorDidMount}
             options={{
                 minimap: { enabled: true },
-                fontSize: 14,
+                fontSize: 13,
                 fontFamily: "'JetBrains Mono', monospace",
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
                 padding: { top: 16 },
-                wordWrap: 'on'
+                wordWrap: 'on',
+                cursorBlinking: 'smooth',
+                smoothScrolling: true,
+                contextmenu: true,
+                lineHeight: 21
             }}
         />
     );

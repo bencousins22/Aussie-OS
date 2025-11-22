@@ -104,13 +104,13 @@ export const DeployView: React.FC = () => {
                     <button
                         onClick={handleDeploy}
                         disabled={isDeploying || !repo}
-                        className="w-full py-3 bg-aussie-500 hover:bg-aussie-600 text-white font-bold rounded-lg text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 disabled:opacity-50 transition-all active:scale-95"
+                        className="w-full py-3 bg-aussie-500 hover:bg-aussie-600 text-[#0f1216] font-bold rounded-lg text-sm flex items-center justify-center gap-2 shadow-lg shadow-aussie-500/20 disabled:opacity-50 transition-all active:scale-95"
                     >
                        {isDeploying ? 'Deploying...' : <><Play className="w-4 h-4 fill-current"/> Deploy to {providers.find(p => p.id === selectedProvider)?.name}</>}
                     </button>
                     
                     {deployState.status === 'live' && (
-                         <a href={deployState.url || '#'} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg text-sm flex items-center justify-center gap-2 transition-all">
+                         <a href={deployState.url || '#'} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-aussie-500 hover:bg-aussie-600 text-[#0f1216] font-bold rounded-lg text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-aussie-500/20">
                              <ExternalLink className="w-4 h-4" /> Visit Live Site
                          </a>
                     )}

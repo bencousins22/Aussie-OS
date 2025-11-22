@@ -136,7 +136,7 @@ export const FlowEditor: React.FC = () => {
                     <button 
                         onClick={runFlow}
                         disabled={isRunning}
-                        className={`w-full py-2 rounded-md font-bold flex items-center justify-center gap-2 mb-4 transition-all ${isRunning ? 'bg-gray-700' : 'bg-green-600 hover:bg-green-500 text-white'}`}
+                        className={`w-full py-2 rounded-md font-bold flex items-center justify-center gap-2 mb-4 transition-all ${isRunning ? 'bg-gray-700' : 'bg-aussie-500 hover:bg-aussie-600 text-[#0f1216] shadow-lg shadow-aussie-500/20'}`}
                     >
                         {isRunning ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Play className="w-4 h-4" />}
                         {isRunning ? 'Running...' : 'Run Flow'}
@@ -152,7 +152,7 @@ export const FlowEditor: React.FC = () => {
                             <Video className="w-3 h-3" /> Media
                         </button>
                     </div>
-                    <button onClick={saveFlow} className="mt-2 w-full py-1.5 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 text-xs flex items-center justify-center gap-1">
+                    <button onClick={saveFlow} className="mt-2 w-full py-1.5 bg-transparent hover:bg-aussie-500/10 rounded border border-gray-700 hover:border-aussie-500 text-xs flex items-center justify-center gap-1 transition-all">
                         <Save className="w-3 h-3" /> Save Flow
                     </button>
                 </div>

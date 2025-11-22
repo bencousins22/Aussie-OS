@@ -92,7 +92,7 @@ export const SettingsView: React.FC = () => {
                                         className="w-full bg-os-bg border border-os-border rounded-lg p-3 pl-10 text-sm font-mono outline-none focus:border-aussie-500"
                                     />
                                 </div>
-                                <button onClick={handleGitHubSave} className="px-4 py-3 bg-aussie-500 hover:bg-aussie-600 text-white font-bold rounded-lg text-sm">
+                                <button onClick={handleGitHubSave} className="px-4 py-3 bg-aussie-500 hover:bg-aussie-600 text-[#0f1216] font-bold rounded-lg text-sm">
                                     Connect
                                 </button>
                             </div>

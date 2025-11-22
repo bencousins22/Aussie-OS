@@ -60,40 +60,40 @@ export const Dashboard: React.FC<Props> = ({ onNavigate }) => {
 
     if (installing) {
         return (
-            <div className="flex flex-col items-center justify-center h-full bg-[#0f1115] text-white p-8">
+            <div className="flex flex-col items-center justify-center h-full bg-os-bg text-white p-8">
                 <div className="relative mb-8">
-                    <div className="w-20 h-20 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
+                    <div className="w-20 h-20 border-t-2 border-b-2 border-aussie-500 rounded-full animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <Bot className="w-8 h-8 text-blue-400" />
+                        <Bot className="w-8 h-8 text-aussie-500" />
                     </div>
                 </div>
-                <h2 className="text-3xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">System Initialization</h2>
-                <p className="text-gray-400 font-mono text-sm tracking-wide">Hydrating Virtual Kernel...</p>
+                <h2 className="text-3xl font-bold mb-3 text-white">System Initialization</h2>
+                <p className="text-os-textDim font-mono text-sm tracking-wide">Hydrating Virtual Kernel...</p>
             </div>
         );
     }
 
     if (!installed) {
         return (
-            <div className="flex flex-col items-center justify-center h-full bg-[#0f1115] text-white p-8 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-[#0f1115] to-[#0f1115] z-0"></div>
+            <div className="flex flex-col items-center justify-center h-full bg-os-bg text-white p-8 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-aussie-900/20 via-os-bg to-os-bg z-0"></div>
                 
                 <div className="z-10 text-center max-w-2xl animate-in fade-in zoom-in duration-500">
-                    <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-2xl shadow-blue-500/20">
-                        <Bot className="w-12 h-12 text-white" />
+                    <div className="w-24 h-24 bg-aussie-500 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-2xl shadow-aussie-500/20">
+                        <Bot className="w-12 h-12 text-os-bg" />
                     </div>
                     
                     <h1 className="text-6xl font-bold mb-6 tracking-tight text-white">
                         Aussie OS
                     </h1>
-                    <p className="text-xl text-gray-400 mb-10 leading-relaxed max-w-lg mx-auto font-light">
+                    <p className="text-xl text-os-textDim mb-10 leading-relaxed max-w-lg mx-auto font-light">
                         The Intelligent Autonomous Operating System.
                         <br/>Connect. Automate. Deploy.
                     </p>
 
                     <button 
                         onClick={handleInstall}
-                        className="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-blue-600 text-lg rounded-2xl hover:bg-blue-500 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/30"
+                        className="group relative inline-flex items-center justify-center px-8 py-4 font-bold transition-all duration-200 bg-aussie-500 text-[#0f1216] text-lg rounded-2xl hover:bg-aussie-400 hover:scale-105 hover:shadow-2xl hover:shadow-aussie-500/30"
                     >
                         <DownloadCloud className="w-5 h-5 mr-3" />
                         Boot System
@@ -111,76 +111,77 @@ export const Dashboard: React.FC<Props> = ({ onNavigate }) => {
     };
 
     return (
-        <div className="h-full bg-[#0f1115] text-white overflow-y-auto custom-scrollbar relative">
-            <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="h-full bg-os-bg text-white overflow-y-auto custom-scrollbar relative">
+            {/* Decorative Mint Glow */}
+            <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-aussie-500/5 rounded-full blur-[120px] pointer-events-none" />
             
-            <div className="max-w-7xl mx-auto p-10 relative z-10">
+            <div className="max-w-[1400px] mx-auto p-8 relative z-10">
                 {/* Header Area */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-10 gap-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6">
                     <div>
-                        <h1 className="text-4xl font-bold mb-2 text-white tracking-tight">{getGreeting()}, User</h1>
-                        <div className="flex items-center gap-6 text-sm text-gray-400 font-medium">
+                        <h1 className="text-3xl font-bold mb-2 text-white tracking-tight">{getGreeting()}, User</h1>
+                        <div className="flex items-center gap-6 text-sm text-os-textDim font-medium">
                             <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> {time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             <span className="flex items-center gap-2"><Cloud className="w-4 h-4" /> Connected</span>
-                            <span className="flex items-center gap-2 text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full"><Shield className="w-3 h-3" /> Protected</span>
+                            <span className="flex items-center gap-2 text-aussie-500 bg-aussie-500/10 px-2 py-0.5 rounded-full"><Shield className="w-3 h-3" /> Protected</span>
                         </div>
                     </div>
                     
                     {/* System Metrics */}
-                    <div className="flex gap-4">
-                        <MetricCard label="CPU" value={`${stats.cpu}%`} icon={Cpu} color="text-blue-400" />
+                    <div className="flex gap-3">
+                        <MetricCard label="CPU" value={`${stats.cpu}%`} icon={Cpu} color="text-aussie-500" />
                         <MetricCard label="MEM" value={`${stats.memory}%`} icon={HardDrive} color="text-purple-400" />
-                        <MetricCard label="NET" value={`${stats.net}`} icon={Wifi} color="text-green-400" />
+                        <MetricCard label="NET" value={`${stats.net}`} icon={Wifi} color="text-blue-400" />
                     </div>
                 </div>
 
                 {/* Core Modules */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
                     <DashboardCard 
                         title="Jules Flow" 
                         desc="Visual Automator"
                         icon={Zap}
-                        gradient="from-yellow-500/10 to-orange-500/10"
                         iconColor="text-yellow-400"
+                        bg="bg-yellow-400/10"
                         onClick={() => onNavigate('flow')}
                     />
                     <DashboardCard 
                         title="Hive Mind" 
                         desc="Agent Swarm"
                         icon={Layers}
-                        gradient="from-blue-500/10 to-cyan-500/10"
                         iconColor="text-blue-400"
+                        bg="bg-blue-400/10"
                         onClick={() => runQuickAction('swarm')}
                     />
                     <DashboardCard 
                         title="GitHub Ops" 
                         desc="Source Control"
                         icon={Github}
-                        gradient="from-gray-500/10 to-slate-500/10"
                         iconColor="text-white"
+                        bg="bg-white/10"
                         onClick={() => onNavigate('github')}
                     />
                     <DashboardCard 
                         title="Workspace" 
                         desc="Code Editor"
                         icon={Terminal}
-                        gradient="from-purple-500/10 to-indigo-500/10"
-                        iconColor="text-purple-400"
+                        iconColor="text-aussie-500"
+                        bg="bg-aussie-500/10"
                         onClick={() => onNavigate('code')}
                     />
                 </div>
 
                 {/* Bottom Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Swarm Status Panel */}
-                    <div className="lg:col-span-2 bg-[#161b22]/50 backdrop-blur border border-white/5 rounded-3xl p-8 shadow-xl">
-                        <div className="flex items-center justify-between mb-8">
-                            <h3 className="font-bold text-xl flex items-center gap-3 text-white">
-                                <Activity className="w-6 h-6 text-blue-500" /> 
+                    <div className="lg:col-span-2 bg-os-panel border border-os-border rounded-2xl p-6 shadow-xl">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="font-bold text-lg flex items-center gap-3 text-white">
+                                <Activity className="w-5 h-5 text-aussie-500" /> 
                                 System Activity
                             </h3>
                         </div>
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             <ActivityItem 
                                 icon={Play} iconColor="text-green-400" bg="bg-green-400/10"
                                 title="System Initialized" 
@@ -203,23 +204,23 @@ export const Dashboard: React.FC<Props> = ({ onNavigate }) => {
                     </div>
 
                     {/* Quick Launch Panel */}
-                    <div className="bg-[#161b22]/50 backdrop-blur border border-white/5 rounded-3xl p-8 flex flex-col shadow-xl">
-                         <h3 className="font-bold text-xl mb-8 flex items-center gap-3 text-white">
-                            <Star className="w-6 h-6 text-yellow-400" /> 
+                    <div className="bg-os-panel border border-os-border rounded-2xl p-6 flex flex-col shadow-xl">
+                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3 text-white">
+                            <Star className="w-5 h-5 text-yellow-400" /> 
                             Quick Access
                         </h3>
-                        <div className="flex-1 space-y-3">
+                        <div className="flex-1 space-y-2">
                             <QuickLink label="New Automation Flow" onClick={() => onNavigate('flow')} />
                             <QuickLink label="Browse Filesystem" onClick={() => onNavigate('code')} />
                             <QuickLink label="Open Web Browser" onClick={() => onNavigate('browser')} />
                             <QuickLink label="Manage Repository" onClick={() => onNavigate('github')} />
                         </div>
-                        <div className="mt-8 pt-8 border-t border-white/5">
+                        <div className="mt-6 pt-6 border-t border-os-border">
                              <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 flex items-center justify-center font-bold text-sm text-white shadow-lg shadow-blue-500/20">AU</div>
+                                <div className="w-10 h-10 rounded-xl bg-aussie-500 flex items-center justify-center font-bold text-sm text-os-bg shadow-lg shadow-aussie-500/20">AU</div>
                                 <div>
-                                    <div className="text-base font-bold text-white">Aussie Kernel</div>
-                                    <div className="text-xs text-green-400 font-medium">v3.0.0 Online</div>
+                                    <div className="text-sm font-bold text-white">Aussie Kernel</div>
+                                    <div className="text-xs text-aussie-500 font-medium">v3.0.0 Online</div>
                                 </div>
                              </div>
                         </div>
@@ -231,48 +232,46 @@ export const Dashboard: React.FC<Props> = ({ onNavigate }) => {
 };
 
 const MetricCard = ({ label, value, icon: Icon, color }: any) => (
-    <div className="bg-[#161b22] border border-white/5 rounded-2xl p-4 min-w-[120px] flex flex-col gap-2 shadow-lg hover:border-white/10 transition-colors">
-        <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-wider">
-            <Icon className={`w-4 h-4 ${color}`} />
+    <div className="bg-os-panel border border-os-border rounded-xl p-3 min-w-[110px] flex flex-col gap-1 shadow-lg">
+        <div className="flex items-center gap-2 text-os-textDim text-[10px] font-bold uppercase tracking-wider">
+            <Icon className={`w-3.5 h-3.5 ${color}`} />
             {label}
         </div>
-        <div className="text-2xl font-mono font-bold text-white">{value}</div>
+        <div className="text-xl font-mono font-bold text-white">{value}</div>
     </div>
 );
 
-const DashboardCard = ({ title, desc, icon: Icon, gradient, iconColor, onClick }: any) => (
+const DashboardCard = ({ title, desc, icon: Icon, bg, iconColor, onClick }: any) => (
     <div 
         onClick={onClick}
-        className="group relative overflow-hidden bg-[#161b22] rounded-3xl border border-white/5 p-6 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:border-white/10"
+        className="group relative overflow-hidden bg-os-panel rounded-2xl border border-os-border p-5 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-aussie-500/30"
     >
-        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-        
-        <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 border border-white/5 group-hover:border-white/10 relative z-10`}>
-            <Icon className={`w-6 h-6 ${iconColor}`} />
+        <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
+            <Icon className={`w-5 h-5 ${iconColor}`} />
         </div>
         
         <div className="relative z-10">
-            <h3 className="font-bold text-lg mb-1 text-white">{title}</h3>
-            <p className="text-sm text-gray-500 leading-relaxed font-medium">{desc}</p>
+            <h3 className="font-bold text-base mb-0.5 text-white">{title}</h3>
+            <p className="text-xs text-os-textDim font-medium">{desc}</p>
         </div>
         
-        <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-            <ChevronRight className="w-5 h-5 text-gray-400" />
+        <div className="absolute bottom-5 right-5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+            <ChevronRight className="w-4 h-4 text-aussie-500" />
         </div>
     </div>
 );
 
 const ActivityItem = ({ icon: Icon, iconColor, bg, title, desc, time }: any) => (
-    <div className="flex items-start gap-4 p-3 rounded-2xl hover:bg-white/5 transition-colors group cursor-default">
-        <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
-            <Icon className={`w-5 h-5 ${iconColor}`} />
+    <div className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-colors group cursor-default">
+        <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
+            <Icon className={`w-4 h-4 ${iconColor}`} />
         </div>
-        <div className="flex-1 min-w-0 pt-1">
-            <div className="flex items-center justify-between mb-1">
-                <h4 className="font-bold text-sm text-gray-200">{title}</h4>
-                <span className="text-xs text-gray-500 font-medium">{time}</span>
+        <div className="flex-1 min-w-0 pt-0.5">
+            <div className="flex items-center justify-between mb-0.5">
+                <h4 className="font-bold text-xs text-gray-200">{title}</h4>
+                <span className="text-[10px] text-os-textDim font-medium">{time}</span>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed truncate">{desc}</p>
+            <p className="text-xs text-os-textDim leading-relaxed truncate">{desc}</p>
         </div>
     </div>
 );
@@ -280,9 +279,9 @@ const ActivityItem = ({ icon: Icon, iconColor, bg, title, desc, time }: any) => 
 const QuickLink = ({ label, onClick }: any) => (
     <button 
         onClick={onClick}
-        className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/5 text-sm text-gray-300 font-medium transition-all group"
+        className="w-full flex items-center justify-between p-3 rounded-lg bg-os-bg hover:bg-white/5 border border-os-border hover:border-aussie-500/30 text-xs text-gray-300 font-medium transition-all group"
     >
         <span>{label}</span>
-        <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+        <ChevronRight className="w-3.5 h-3.5 text-gray-600 group-hover:text-aussie-500 group-hover:translate-x-1 transition-all" />
     </button>
 );

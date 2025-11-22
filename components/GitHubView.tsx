@@ -43,8 +43,9 @@ export const GitHubView: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        // Auto scroll log to top (since git log puts newest first) or bottom?
-        // Git log usually puts newest at top.
+        if(logEndRef.current) {
+            logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
     }, [lastLog]);
 
     const handleStage = async (path: string) => {
@@ -69,7 +70,6 @@ export const GitHubView: React.FC = () => {
     const handlePush = async () => {
         if(!user) return notify.error("Not Connected", "Please connect your GitHub account in Settings.");
         notify.info('Git Push', 'Pushing to remote...');
-        // In a real env, we'd use isomorphic-git's push with an http client
         await new Promise(r => setTimeout(r, 1500));
         notify.success('Git Push', 'Pushed main to origin (simulated).');
     };
@@ -79,11 +79,11 @@ export const GitHubView: React.FC = () => {
             {/* Header */}
             <div className="h-14 border-b border-os-border flex items-center justify-between px-4 bg-os-panel shrink-0">
                 <div className="flex items-center gap-3">
-                    <Github className="w-5 h-5" />
+                    <Github className="w-5 h-5 text-white" />
                     <h2 className="font-bold text-white text-sm uppercase tracking-wider">Source Control</h2>
                 </div>
                 {user && (
-                     <div className="flex items-center gap-2 bg-black/20 px-2 py-1 rounded-full border border-white/5">
+                     <div className="flex items-center gap-2 bg-os-bg px-2 py-1 rounded-full border border-os-border">
                         <img src={user.avatar_url} className="w-5 h-5 rounded-full" />
                         <span className="text-xs font-bold text-os-text">{user.login}</span>
                     </div>
@@ -103,7 +103,7 @@ export const GitHubView: React.FC = () => {
             ) : (
                 <>
                     {/* Top Bar: Branch Info */}
-                    <div className="px-4 py-2 border-b border-os-border bg-[#0d1117] flex items-center justify-between shrink-0">
+                    <div className="px-4 py-3 border-b border-os-border bg-os-bg flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-2 font-mono text-xs text-aussie-500 font-bold">
                             <GitBranch className="w-3.5 h-3.5" />
                             main
@@ -123,14 +123,14 @@ export const GitHubView: React.FC = () => {
                             </div>
                             
                             {statusItems.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-os-textDim/40 gap-2 border border-dashed border-os-border rounded-xl">
+                                <div className="flex flex-col items-center justify-center py-12 text-os-textDim/40 gap-2 border border-dashed border-os-border rounded-xl bg-os-panel/30">
                                     <Check className="w-8 h-8" />
                                     <span className="text-xs">Working tree clean</span>
                                 </div>
                             ) : (
                                 <div className="space-y-1">
                                     {statusItems.map(item => (
-                                        <div key={item.path} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 group transition-colors border border-transparent hover:border-white/5">
+                                        <div key={item.path} className="flex items-center justify-between p-2 rounded-lg hover:bg-os-panel group transition-colors border border-transparent hover:border-os-border">
                                             <div className="flex items-center gap-3 min-w-0">
                                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0 ${item.status === 'new' ? 'bg-green-500/20 text-green-400' : item.status === 'modified' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
                                                     {item.status.substring(0, 1)}
@@ -148,8 +148,8 @@ export const GitHubView: React.FC = () => {
                     </div>
 
                     {/* Git Output / Terminal */}
-                    <div className="h-32 border-t border-os-border bg-[#0d1117] flex flex-col shrink-0">
-                        <div className="px-3 py-1.5 border-b border-gray-800 flex items-center gap-2 text-[10px] font-bold text-gray-500 bg-[#161b22] uppercase tracking-wider">
+                    <div className="h-36 border-t border-os-border bg-[#0a0c10] flex flex-col shrink-0">
+                        <div className="px-3 py-1.5 border-b border-os-border flex items-center gap-2 text-[10px] font-bold text-gray-500 bg-os-panel uppercase tracking-wider">
                             <Terminal className="w-3 h-3" />
                             Git Output
                         </div>
@@ -159,13 +159,13 @@ export const GitHubView: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Action Bar */}
+                    {/* Action Bar (Fixed Bottom) */}
                     <div className="p-4 bg-os-panel border-t border-os-border shrink-0">
                         <textarea 
                             value={commitMsg}
                             onChange={e => setCommitMsg(e.target.value)}
-                            placeholder="Message (Enter to commit)"
-                            className="w-full bg-[#0d1117] border border-os-border rounded-lg p-3 text-xs font-mono outline-none focus:border-aussie-500 transition-colors h-16 resize-none mb-3 text-gray-300 placeholder-gray-600"
+                            placeholder="Commit Message (Cmd+Enter)"
+                            className="w-full bg-os-bg border border-os-border rounded-lg p-3 text-xs font-mono outline-none focus:border-aussie-500 transition-colors h-14 resize-none mb-3 text-gray-300 placeholder-gray-600"
                             onKeyDown={e => {
                                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleCommit();
                             }}
@@ -174,14 +174,14 @@ export const GitHubView: React.FC = () => {
                             <button 
                                 onClick={handleCommit}
                                 disabled={statusItems.length === 0 || !commitMsg}
-                                className="flex-1 py-2 bg-aussie-500 hover:bg-aussie-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg text-xs shadow-lg shadow-blue-900/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                className="flex-1 py-2 bg-aussie-500 hover:bg-aussie-600 disabled:opacity-50 disabled:cursor-not-allowed text-os-bg font-bold rounded-lg text-xs shadow-lg shadow-aussie-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                             >
                                 <Check className="w-3.5 h-3.5" /> Commit
                             </button>
-                            <button onClick={handlePush} title="Push Changes" className="px-4 py-2 bg-[#1f2428] hover:bg-[#2a3038] border border-os-border rounded-lg text-gray-300 hover:text-white transition-all">
+                            <button onClick={handlePush} title="Push Changes" className="px-4 py-2 bg-os-bg hover:bg-os-active border border-os-border rounded-lg text-gray-300 hover:text-white transition-all">
                                 <UploadCloud className="w-4 h-4" />
                             </button>
-                            <button onClick={refresh} title="Fetch Remote" className="px-4 py-2 bg-[#1f2428] hover:bg-[#2a3038] border border-os-border rounded-lg text-gray-300 hover:text-white transition-all">
+                            <button onClick={refresh} title="Fetch Remote" className="px-4 py-2 bg-os-bg hover:bg-os-active border border-os-border rounded-lg text-gray-300 hover:text-white transition-all">
                                 <DownloadCloud className="w-4 h-4" />
                             </button>
                         </div>

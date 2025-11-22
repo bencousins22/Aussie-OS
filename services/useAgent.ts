@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { Message, TerminalBlock, WorkflowPhase, EditorTab } from '../types';
 import { AUSSIE_SYSTEM_INSTRUCTION, TOOLS } from '../constants';
 import { fs } from './fileSystem';
@@ -13,6 +13,7 @@ import { notify } from './notification';
 import { scheduler } from './scheduler';
 import { deployment } from './deployment';
 import { bus } from './eventBus';
+import { audioUtils } from './audio.ts';
 
 const uuid = () => Math.random().toString(36).substring(2, 15);
 
@@ -23,9 +24,18 @@ export const useAgent = () => {
     const [editorTabs, setEditorTabs] = useState<EditorTab[]>([]);
     const [activeTabPath, setActiveTabPath] = useState<string | null>(null);
     const [mediaFile, setMediaFile] = useState<{ path: string; type: 'video' | 'image' | 'audio' } | null>(null);
+    const [isLive, setIsLive] = useState(false);
     
     const chatSessionRef = useRef<any>(null);
     const isProcessingRef = useRef(false);
+
+    // Live API Refs
+    const liveSessionRef = useRef<any>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const inputSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const processorRef = useRef<ScriptProcessorNode | null>(null);
+    const outputContextRef = useRef<AudioContext | null>(null);
+    const nextAudioStartTimeRef = useRef<number>(0);
 
     // Subscribe to agent messages from Swarm/Jules
     useEffect(() => {
@@ -104,6 +114,11 @@ export const useAgent = () => {
                     notify.info("Aussie Agent", args.text);
                     return { status: "ok" };
 
+                case 'switch_view':
+                    bus.emit('switch-view', { view: args.view });
+                    notify.info("Interface", `Switched to ${args.view} view`);
+                    return { status: "success", message: `Switched view to ${args.view}` };
+
                 case 'file_read':
                     return { content: fs.readFile(args.file) };
 
@@ -180,6 +195,132 @@ export const useAgent = () => {
             return { error: e.message };
         }
     };
+
+    // --- GEMINI LIVE IMPLEMENTATION ---
+
+    const startLiveSession = async () => {
+        if (!process.env.API_KEY) return notify.error("Error", "Missing API Key");
+        
+        try {
+            setIsLive(true);
+            notify.info("Aussie Live", "Connecting to Gemini Live...");
+
+            // 1. Setup Audio Contexts
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            outputContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true } });
+            
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            
+            // 2. Connect to Live API
+            const sessionPromise = ai.live.connect({
+                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                config: {
+                    responseModalities: [Modality.AUDIO],
+                    tools: [{ functionDeclarations: TOOLS }],
+                    systemInstruction: AUSSIE_SYSTEM_INSTRUCTION + "\n\nNote: You are in Voice Mode. Be concise.",
+                },
+                callbacks: {
+                    onopen: () => {
+                        notify.success("Aussie Live", "Voice Connection Established");
+                        
+                        // Start recording pipeline
+                        inputSourceRef.current = audioContextRef.current!.createMediaStreamSource(stream);
+                        processorRef.current = audioContextRef.current!.createScriptProcessor(4096, 1, 1);
+                        
+                        processorRef.current.onaudioprocess = (e) => {
+                            const inputData = e.inputBuffer.getChannelData(0);
+                            // Downsample/Convert Float32 to Int16 PCM
+                            const pcmData = audioUtils.floatTo16BitPCM(inputData);
+                            const base64 = audioUtils.arrayBufferToBase64(pcmData);
+                            
+                            sessionPromise.then(session => {
+                                session.sendRealtimeInput({
+                                    media: {
+                                        mimeType: 'audio/pcm;rate=16000',
+                                        data: base64
+                                    }
+                                });
+                            });
+                        };
+                        
+                        inputSourceRef.current.connect(processorRef.current);
+                        processorRef.current.connect(audioContextRef.current!.destination);
+                    },
+                    onmessage: async (msg: LiveServerMessage) => {
+                        // 1. Handle Audio Output
+                        const audioData = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
+                        if (audioData && outputContextRef.current) {
+                             const buffer = await audioUtils.convertPCMToAudioBuffer(audioData, outputContextRef.current);
+                             const source = outputContextRef.current.createBufferSource();
+                             source.buffer = buffer;
+                             source.connect(outputContextRef.current.destination);
+                             
+                             const currentTime = outputContextRef.current.currentTime;
+                             const startTime = Math.max(currentTime, nextAudioStartTimeRef.current);
+                             source.start(startTime);
+                             nextAudioStartTimeRef.current = startTime + buffer.duration;
+                        }
+
+                        // 2. Handle Tool Calls
+                        if (msg.toolCall) {
+                            for (const fc of msg.toolCall.functionCalls) {
+                                notify.info("Live Agent", `Executing: ${fc.name}`);
+                                const result = await executeTool(fc.name, fc.args);
+                                
+                                sessionPromise.then(session => {
+                                    session.sendToolResponse({
+                                        functionResponses: [{
+                                            id: fc.id,
+                                            name: fc.name,
+                                            response: { result }
+                                        }]
+                                    });
+                                });
+                            }
+                        }
+                    },
+                    onclose: () => {
+                        setIsLive(false);
+                        notify.info("Aussie Live", "Session Disconnected");
+                    },
+                    onerror: (e) => {
+                        console.error("Live Error", e);
+                        notify.error("Live Error", "Connection interrupted");
+                        stopLiveSession();
+                    }
+                }
+            });
+            
+            liveSessionRef.current = sessionPromise;
+
+        } catch (e: any) {
+            notify.error("Connection Failed", e.message);
+            setIsLive(false);
+        }
+    };
+
+    const stopLiveSession = () => {
+        if (inputSourceRef.current) inputSourceRef.current.disconnect();
+        if (processorRef.current) processorRef.current.disconnect();
+        if (audioContextRef.current) audioContextRef.current.close();
+        if (outputContextRef.current) outputContextRef.current.close();
+        
+        // We can't strictly "close" the session promise object easily without the session object itself,
+        // but typically we just tear down the local audio. 
+        // Ideally call session.close() if available in the resolved promise.
+        liveSessionRef.current?.then((s: any) => s.close());
+        
+        setIsLive(false);
+    };
+
+    const toggleLive = () => {
+        if (isLive) stopLiveSession();
+        else startLiveSession();
+    };
+
+    // --- EXISTING TEXT CHAT ---
 
     const processUserMessage = async (text: string) => {
         if (!process.env.API_KEY) {
@@ -269,6 +410,8 @@ export const useAgent = () => {
         mediaFile,
         setMediaFile,
         processUserMessage,
-        runShellCommand
+        runShellCommand,
+        isLive,
+        toggleLive
     };
 };
