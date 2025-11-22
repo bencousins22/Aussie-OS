@@ -13,7 +13,7 @@ import { notify } from './notification';
 import { scheduler } from './scheduler';
 import { deployment } from './deployment';
 import { bus } from './eventBus';
-import { audioUtils } from './audio.ts';
+import { audioUtils } from './audio';
 
 const uuid = () => Math.random().toString(36).substring(2, 15);
 
@@ -25,6 +25,8 @@ export const useAgent = () => {
     const [activeTabPath, setActiveTabPath] = useState<string | null>(null);
     const [mediaFile, setMediaFile] = useState<{ path: string; type: 'video' | 'image' | 'audio' } | null>(null);
     const [isLive, setIsLive] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [isTtsEnabled, setIsTtsEnabled] = useState(false);
     
     const chatSessionRef = useRef<any>(null);
     const isProcessingRef = useRef(false);
@@ -196,6 +198,32 @@ export const useAgent = () => {
         }
     };
 
+    const speakText = async (text: string) => {
+        if (!process.env.API_KEY || !text) return;
+        
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash-preview-tts',
+                contents: [{ parts: [{ text }] }],
+                config: {
+                    responseModalities: [Modality.AUDIO],
+                    speechConfig: {
+                        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
+                    }
+                }
+            });
+            
+            const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+            if (audioData) {
+                await audioUtils.playBase64(audioData);
+            }
+        } catch (error) {
+            console.error("TTS Error:", error);
+            notify.warning("TTS Failed", "Could not generate speech.");
+        }
+    };
+
     // --- GEMINI LIVE IMPLEMENTATION ---
 
     const startLiveSession = async () => {
@@ -206,8 +234,17 @@ export const useAgent = () => {
             notify.info("Aussie Live", "Connecting to Gemini Live...");
 
             // 1. Setup Audio Contexts
-            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-            outputContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+            }
+            if (!outputContextRef.current) {
+                outputContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            }
+
+            // Ensure AudioContext is running (handling browser autoplay policy)
+            if (outputContextRef.current.state === 'suspended') {
+                await outputContextRef.current.resume();
+            }
             
             const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true } });
             
@@ -219,7 +256,7 @@ export const useAgent = () => {
                 config: {
                     responseModalities: [Modality.AUDIO],
                     tools: [{ functionDeclarations: TOOLS }],
-                    systemInstruction: AUSSIE_SYSTEM_INSTRUCTION + "\n\nNote: You are in Voice Mode. Be concise.",
+                    systemInstruction: AUSSIE_SYSTEM_INSTRUCTION + "\n\nNote: You are in Voice Mode. Keep responses concise and conversational.",
                 },
                 callbacks: {
                     onopen: () => {
@@ -251,7 +288,8 @@ export const useAgent = () => {
                     onmessage: async (msg: LiveServerMessage) => {
                         // 1. Handle Audio Output
                         const audioData = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-                        if (audioData && outputContextRef.current) {
+                        
+                        if (audioData && outputContextRef.current && !isMutedRef.current) {
                              const buffer = await audioUtils.convertPCMToAudioBuffer(audioData, outputContextRef.current);
                              const source = outputContextRef.current.createBufferSource();
                              source.buffer = buffer;
@@ -301,15 +339,17 @@ export const useAgent = () => {
         }
     };
 
+    // Use ref to access latest state in callback closure
+    const isMutedRef = useRef(isMuted);
+    useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+
     const stopLiveSession = () => {
         if (inputSourceRef.current) inputSourceRef.current.disconnect();
         if (processorRef.current) processorRef.current.disconnect();
-        if (audioContextRef.current) audioContextRef.current.close();
-        if (outputContextRef.current) outputContextRef.current.close();
+        // Don't close context completely, just suspend or leave open for next session
+        // if (audioContextRef.current) audioContextRef.current.close();
+        // if (outputContextRef.current) outputContextRef.current.close();
         
-        // We can't strictly "close" the session promise object easily without the session object itself,
-        // but typically we just tear down the local audio. 
-        // Ideally call session.close() if available in the resolved promise.
         liveSessionRef.current?.then((s: any) => s.close());
         
         setIsLive(false);
@@ -318,6 +358,16 @@ export const useAgent = () => {
     const toggleLive = () => {
         if (isLive) stopLiveSession();
         else startLiveSession();
+    };
+
+    const toggleMute = () => {
+        setIsMuted(!isMuted);
+    };
+
+    const toggleTts = () => {
+        setIsTtsEnabled(!isTtsEnabled);
+        if (!isTtsEnabled) notify.info("Text-to-Speech", "Aussie will now speak responses.");
+        else notify.info("Text-to-Speech", "Voice output disabled.");
     };
 
     // --- EXISTING TEXT CHAT ---
@@ -356,7 +406,15 @@ export const useAgent = () => {
                 const calls = parts.filter((p: any) => p.functionCall);
                 const thoughts = parts.filter((p: any) => p.text && !p.functionCall);
 
-                if (thoughts.length) thoughts.forEach((t: any) => addBlock('ai-thought', t.text));
+                if (thoughts.length) {
+                    thoughts.forEach((t: any) => {
+                        addBlock('ai-thought', t.text);
+                        // Speak thought/response if enabled
+                        if (isTtsEnabled && t.text) {
+                            speakText(t.text);
+                        }
+                    });
+                }
 
                 if (calls.length > 0) {
                     setWorkflowPhase('coding');
@@ -364,6 +422,11 @@ export const useAgent = () => {
                     for (const callPart of calls) {
                         const call = callPart.functionCall;
                         const result = await executeTool(call.name, call.args);
+                        
+                        // Extract image size param if present for media gen
+                        if (call.name === 'media_gen' && call.args.imageSize) {
+                             // Already handled in executeTool
+                        }
                         
                         if (call.name === 'idle') isProcessingRef.current = false;
 
@@ -412,6 +475,10 @@ export const useAgent = () => {
         processUserMessage,
         runShellCommand,
         isLive,
-        toggleLive
+        isMuted,
+        isTtsEnabled,
+        toggleLive,
+        toggleMute,
+        toggleTts
     };
 };

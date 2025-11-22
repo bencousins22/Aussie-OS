@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, Code2, Globe, Bot, Github, Calendar, Rocket, Search, Settings } from 'lucide-react';
+import { Home, Code2, Globe, Bot, Github, Calendar, Rocket, Search, Settings, Briefcase } from 'lucide-react';
 import { MainView } from '../types';
 
 interface ActivityBarProps {
@@ -11,6 +11,7 @@ interface ActivityBarProps {
 
 const buttons = [
     { view: 'dashboard', icon: Home, tooltip: 'Dashboard' },
+    { view: 'projects', icon: Briefcase, tooltip: 'Projects & Team' },
     { view: 'code', icon: Code2, tooltip: 'Code Workspace' },
     { view: 'browser', icon: Globe, tooltip: 'Web Browser' },
     { view: 'flow', icon: Bot, tooltip: 'Jules Flow' },

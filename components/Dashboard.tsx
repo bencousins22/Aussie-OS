@@ -1,33 +1,71 @@
 
-import React, { useState, useEffect } from 'react';
-import { autoSetup } from '../services/autoSetup';
+import React, { useState, useEffect, useRef } from 'react';
+import { fs } from '../services/fileSystem';
 import { 
-    Bot, DownloadCloud, Zap, Video, Github, Terminal, Layers, Play, 
-    Cpu, HardDrive, Wifi, Activity, Clock, Cloud, Shield, Box, 
-    ChevronRight, Star
+    Bot, Terminal, Globe, FileText, Rocket, Github, 
+    Cpu, HardDrive, Wifi, Calendar, Zap, Folder, 
+    MoreHorizontal, Trash, Maximize2, Image, Activity
 } from 'lucide-react';
-import { shell } from '../services/shell';
+import { MainView } from '../types';
+import { notify } from '../services/notification';
 
 interface Props {
-    onNavigate: (view: 'flow' | 'code' | 'explorer' | 'browser' | 'github') => void;
+    onNavigate: (view: MainView) => void;
+}
+
+interface DesktopIcon {
+    name: string;
+    path: string;
+    type: 'app' | 'file' | 'folder';
+    appTarget?: MainView;
+    x?: number; // For future drag n drop
+    y?: number;
 }
 
 export const Dashboard: React.FC<Props> = ({ onNavigate }) => {
-    const [installed, setInstalled] = useState(false);
-    const [installing, setInstalling] = useState(false);
+    const [icons, setIcons] = useState<DesktopIcon[]>([]);
+    const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
     const [time, setTime] = useState(new Date());
-    const [stats, setStats] = useState({ cpu: 12, memory: 45, net: 1.2 });
+    const [stats, setStats] = useState({ cpu: 12, ram: 45 });
+    const [contextMenu, setContextMenu] = useState<{x: number, y: number, visible: boolean}>({x:0, y:0, visible: false});
 
+    // Kernel Loop: Refresh Desktop & Stats
     useEffect(() => {
-        setInstalled(autoSetup.isInstalled());
-        
+        const refreshDesktop = () => {
+            try {
+                const files = fs.readDir('/home/aussie/Desktop');
+                const desktopIcons: DesktopIcon[] = files.map(f => {
+                    let type: DesktopIcon['type'] = f.type === 'directory' ? 'folder' : 'file';
+                    let appTarget: MainView | undefined;
+
+                    // Parse shortcuts
+                    if (f.name.endsWith('.lnk')) {
+                        const content = fs.readFile(f.path);
+                        if (content.startsWith('app:')) {
+                            type = 'app';
+                            appTarget = content.split(':')[1] as MainView;
+                        }
+                    }
+
+                    return {
+                        name: f.name.replace('.lnk', ''),
+                        path: f.path,
+                        type,
+                        appTarget
+                    };
+                });
+                setIcons(desktopIcons);
+            } catch (e) {
+                console.error("Desktop crash", e);
+            }
+        };
+
+        refreshDesktop();
         const timer = setInterval(() => setTime(new Date()), 1000);
-        
         const statTimer = setInterval(() => {
             setStats({
                 cpu: Math.floor(Math.random() * 30) + 10,
-                memory: Math.floor(Math.random() * 10) + 40,
-                net: Number((Math.random() * 5 + 0.5).toFixed(1))
+                ram: Math.floor(Math.random() * 15) + 35
             });
         }, 2000);
 
@@ -37,251 +75,198 @@ export const Dashboard: React.FC<Props> = ({ onNavigate }) => {
         };
     }, []);
 
-    const handleInstall = async () => {
-        setInstalling(true);
-        try {
-            await autoSetup.installSystem();
-            setInstalled(true);
-        } catch (e) {
-            alert('Installation Failed');
-        } finally {
-            setInstalling(false);
+    const handleIconClick = (e: React.MouseEvent, name: string) => {
+        e.stopPropagation();
+        setSelectedIcon(name);
+        setContextMenu(prev => ({ ...prev, visible: false }));
+    };
+
+    const handleDoubleClick = (icon: DesktopIcon) => {
+        if (icon.type === 'app' && icon.appTarget) {
+            onNavigate(icon.appTarget);
+        } else if (icon.type === 'file') {
+            // For text files, simple alert/notify for now, or open in editor if we wired it
+            const content = fs.readFile(icon.path);
+            notify.info(icon.name, content.substring(0, 100));
         }
     };
 
-    const runQuickAction = async (action: string) => {
-        if (action === 'swarm') {
-            await shell.execute('gemini-flow hive-mind spawn --objective "Optimize System" --agents "architect,coder"');
-        }
-        if (action === 'video') {
-            await shell.execute('gemini-flow veo3 --prompt "Cinematic drone shot of mars colony"');
+    const handleRightClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setContextMenu({ x: e.clientX, y: e.clientY, visible: true });
+    };
+
+    const getIconComponent = (icon: DesktopIcon) => {
+        switch (icon.name) {
+            case 'Browser': return Globe;
+            case 'Terminal': return Terminal;
+            case 'Jules Flow': return Zap;
+            case 'GitHub': return Github;
+            case 'Deploy': return Rocket;
+            case 'My Projects': return Folder;
+            default: return icon.type === 'folder' ? Folder : FileText;
         }
     };
 
-    if (installing) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full bg-os-bg text-white p-8">
-                <div className="relative mb-8">
-                    <div className="w-20 h-20 border-t-2 border-b-2 border-aussie-500 rounded-full animate-spin"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <Bot className="w-8 h-8 text-aussie-500" />
-                    </div>
-                </div>
-                <h2 className="text-3xl font-bold mb-3 text-white">System Initialization</h2>
-                <p className="text-os-textDim font-mono text-sm tracking-wide">Hydrating Virtual Kernel...</p>
-            </div>
-        );
-    }
-
-    if (!installed) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full bg-os-bg text-white p-8 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-aussie-900/20 via-os-bg to-os-bg z-0"></div>
-                
-                <div className="z-10 text-center max-w-2xl animate-in fade-in zoom-in duration-500">
-                    <div className="w-24 h-24 bg-aussie-500 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-2xl shadow-aussie-500/20">
-                        <Bot className="w-12 h-12 text-os-bg" />
-                    </div>
-                    
-                    <h1 className="text-6xl font-bold mb-6 tracking-tight text-white">
-                        Aussie OS
-                    </h1>
-                    <p className="text-xl text-os-textDim mb-10 leading-relaxed max-w-lg mx-auto font-light">
-                        The Intelligent Autonomous Operating System.
-                        <br/>Connect. Automate. Deploy.
-                    </p>
-
-                    <button 
-                        onClick={handleInstall}
-                        className="group relative inline-flex items-center justify-center px-8 py-4 font-bold transition-all duration-200 bg-aussie-500 text-[#0f1216] text-lg rounded-2xl hover:bg-aussie-400 hover:scale-105 hover:shadow-2xl hover:shadow-aussie-500/30"
-                    >
-                        <DownloadCloud className="w-5 h-5 mr-3" />
-                        Boot System
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    const getGreeting = () => {
-        const hour = time.getHours();
-        if (hour < 12) return 'Good Morning';
-        if (hour < 18) return 'Good Afternoon';
-        return 'Good Evening';
+    const getIconColor = (icon: DesktopIcon) => {
+        switch (icon.name) {
+            case 'Browser': return 'text-blue-400';
+            case 'Jules Flow': return 'text-yellow-400';
+            case 'GitHub': return 'text-white';
+            case 'Deploy': return 'text-purple-400';
+            case 'Terminal': return 'text-aussie-500';
+            default: return 'text-gray-400';
+        }
     };
 
     return (
-        <div className="h-full bg-os-bg text-white overflow-y-auto custom-scrollbar relative">
-            {/* Decorative Mint Glow */}
-            <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-aussie-500/5 rounded-full blur-[120px] pointer-events-none" />
-            
-            <div className="max-w-[1400px] mx-auto p-8 relative z-10">
-                {/* Header Area */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6">
-                    <div>
-                        <h1 className="text-3xl font-bold mb-2 text-white tracking-tight">{getGreeting()}, User</h1>
-                        <div className="flex items-center gap-6 text-sm text-os-textDim font-medium">
-                            <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> {time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                            <span className="flex items-center gap-2"><Cloud className="w-4 h-4" /> Connected</span>
-                            <span className="flex items-center gap-2 text-aussie-500 bg-aussie-500/10 px-2 py-0.5 rounded-full"><Shield className="w-3 h-3" /> Protected</span>
+        <div 
+            className="h-full w-full relative overflow-hidden bg-os-bg select-none"
+            onClick={() => { setSelectedIcon(null); setContextMenu(prev => ({...prev, visible: false})); }}
+            onContextMenu={handleRightClick}
+        >
+            {/* Desktop Wallpaper Layer */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                {/* Abstract Tech Grid Background */}
+                <div className="absolute inset-0 opacity-10" 
+                     style={{ 
+                         backgroundImage: 'radial-gradient(#2a2e36 1px, transparent 1px)', 
+                         backgroundSize: '30px 30px' 
+                     }} 
+                />
+                {/* Vave Glow */}
+                <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-aussie-500/5 rounded-full blur-[150px]" />
+                <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[120px]" />
+            </div>
+
+            {/* Desktop Icons Grid */}
+            <div className="relative z-10 p-6 grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] grid-rows-[repeat(auto-fill,minmax(100px,1fr))] gap-2 h-full content-start w-fit">
+                {icons.map(icon => {
+                    const IconComp = getIconComponent(icon);
+                    const isSelected = selectedIcon === icon.name;
+                    
+                    return (
+                        <div 
+                            key={icon.name}
+                            onClick={(e) => handleIconClick(e, icon.name)}
+                            onDoubleClick={() => handleDoubleClick(icon)}
+                            className={`
+                                flex flex-col items-center justify-center gap-2 p-2 rounded-lg w-[100px] h-[100px] cursor-pointer border transition-all group
+                                ${isSelected 
+                                    ? 'bg-aussie-500/20 border-aussie-500/50 shadow-[0_0_15px_rgba(0,229,153,0.1)]' 
+                                    : 'bg-transparent border-transparent hover:bg-white/5 hover:border-white/10'}
+                            `}
+                        >
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 ${isSelected ? 'scale-110' : ''}`}>
+                                <IconComp className={`w-8 h-8 ${getIconColor(icon)}`} strokeWidth={1.5} />
+                            </div>
+                            <span className={`
+                                text-[11px] font-medium text-center leading-tight px-1 py-0.5 rounded
+                                ${isSelected ? 'text-white bg-os-bg/80' : 'text-gray-300 group-hover:text-white text-shadow-sm'}
+                            `}>
+                                {icon.name}
+                            </span>
                         </div>
+                    );
+                })}
+            </div>
+
+            {/* Widgets Layer (Top Right) */}
+            <div className="absolute top-6 right-6 z-10 flex flex-col gap-4 w-72 pointer-events-none">
+                {/* Clock Widget */}
+                <div className="pointer-events-auto bg-os-panel/40 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-2xl hover:bg-os-panel/60 transition-colors group">
+                    <div className="flex justify-between items-start mb-2">
+                        <div className="text-xs font-bold text-aussie-500 uppercase tracking-widest">Local Time</div>
+                        <Calendar className="w-4 h-4 text-white/50" />
+                    </div>
+                    <div className="text-4xl font-mono font-bold text-white tracking-tighter">
+                        {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div className="text-sm text-gray-400 font-medium mt-1">
+                        {time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+                    </div>
+                </div>
+
+                {/* System Status Widget */}
+                <div className="pointer-events-auto bg-os-panel/40 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-2xl hover:bg-os-panel/60 transition-colors">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="text-xs font-bold text-purple-400 uppercase tracking-widest">System Health</div>
+                        <Activity className="w-4 h-4 text-white/50" />
                     </div>
                     
-                    {/* System Metrics */}
-                    <div className="flex gap-3">
-                        <MetricCard label="CPU" value={`${stats.cpu}%`} icon={Cpu} color="text-aussie-500" />
-                        <MetricCard label="MEM" value={`${stats.memory}%`} icon={HardDrive} color="text-purple-400" />
-                        <MetricCard label="NET" value={`${stats.net}`} icon={Wifi} color="text-blue-400" />
+                    <div className="space-y-4">
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] uppercase font-bold text-gray-400">
+                                <span>CPU Load</span>
+                                <span>{stats.cpu}%</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-aussie-600 to-aussie-400 transition-all duration-1000"
+                                    style={{ width: `${stats.cpu}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] uppercase font-bold text-gray-400">
+                                <span>Memory</span>
+                                <span>{stats.ram}%</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-1000"
+                                    style={{ width: `${stats.ram}%` }}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                {/* Core Modules */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-                    <DashboardCard 
-                        title="Jules Flow" 
-                        desc="Visual Automator"
-                        icon={Zap}
-                        iconColor="text-yellow-400"
-                        bg="bg-yellow-400/10"
-                        onClick={() => onNavigate('flow')}
-                    />
-                    <DashboardCard 
-                        title="Hive Mind" 
-                        desc="Agent Swarm"
-                        icon={Layers}
-                        iconColor="text-blue-400"
-                        bg="bg-blue-400/10"
-                        onClick={() => runQuickAction('swarm')}
-                    />
-                    <DashboardCard 
-                        title="GitHub Ops" 
-                        desc="Source Control"
-                        icon={Github}
-                        iconColor="text-white"
-                        bg="bg-white/10"
-                        onClick={() => onNavigate('github')}
-                    />
-                    <DashboardCard 
-                        title="Workspace" 
-                        desc="Code Editor"
-                        icon={Terminal}
-                        iconColor="text-aussie-500"
-                        bg="bg-aussie-500/10"
-                        onClick={() => onNavigate('code')}
-                    />
-                </div>
-
-                {/* Bottom Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Swarm Status Panel */}
-                    <div className="lg:col-span-2 bg-os-panel border border-os-border rounded-2xl p-6 shadow-xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="font-bold text-lg flex items-center gap-3 text-white">
-                                <Activity className="w-5 h-5 text-aussie-500" /> 
-                                System Activity
-                            </h3>
+                
+                {/* Network Widget */}
+                <div className="pointer-events-auto bg-os-panel/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center justify-between hover:bg-os-panel/60 transition-colors">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                            <Wifi className="w-5 h-5 text-blue-400" />
                         </div>
-                        <div className="space-y-4">
-                            <ActivityItem 
-                                icon={Play} iconColor="text-green-400" bg="bg-green-400/10"
-                                title="System Initialized" 
-                                desc="Kernel loaded successfully. All modules active."
-                                time="Just now" 
-                            />
-                            <ActivityItem 
-                                icon={Github} iconColor="text-purple-400" bg="bg-purple-400/10"
-                                title="Repo Synced" 
-                                desc="gemini-flow repository hydrated from hydrator."
-                                time="2m ago" 
-                            />
-                             <ActivityItem 
-                                icon={Box} iconColor="text-orange-400" bg="bg-orange-400/10"
-                                title="Packages Ready" 
-                                desc="Dependency graph resolved via APM."
-                                time="3m ago" 
-                            />
+                        <div>
+                            <div className="text-xs font-bold text-white">AussieNet 5G</div>
+                            <div className="text-[10px] text-green-400">Connected • 1.2 Gbps</div>
                         </div>
                     </div>
-
-                    {/* Quick Launch Panel */}
-                    <div className="bg-os-panel border border-os-border rounded-2xl p-6 flex flex-col shadow-xl">
-                         <h3 className="font-bold text-lg mb-6 flex items-center gap-3 text-white">
-                            <Star className="w-5 h-5 text-yellow-400" /> 
-                            Quick Access
-                        </h3>
-                        <div className="flex-1 space-y-2">
-                            <QuickLink label="New Automation Flow" onClick={() => onNavigate('flow')} />
-                            <QuickLink label="Browse Filesystem" onClick={() => onNavigate('code')} />
-                            <QuickLink label="Open Web Browser" onClick={() => onNavigate('browser')} />
-                            <QuickLink label="Manage Repository" onClick={() => onNavigate('github')} />
-                        </div>
-                        <div className="mt-6 pt-6 border-t border-os-border">
-                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-aussie-500 flex items-center justify-center font-bold text-sm text-os-bg shadow-lg shadow-aussie-500/20">AU</div>
-                                <div>
-                                    <div className="text-sm font-bold text-white">Aussie Kernel</div>
-                                    <div className="text-xs text-aussie-500 font-medium">v3.0.0 Online</div>
-                                </div>
-                             </div>
-                        </div>
-                    </div>
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                 </div>
             </div>
+
+            {/* Desktop Context Menu */}
+            {contextMenu.visible && (
+                <div 
+                    className="fixed bg-os-panel/90 backdrop-blur-xl border border-os-border rounded-lg shadow-2xl py-1 w-48 z-50 animate-in fade-in zoom-in-95 duration-100"
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-white/5 mb-1">
+                        Desktop
+                    </div>
+                    <MenuItem label="New Folder" icon={Folder} />
+                    <MenuItem label="New Text File" icon={FileText} />
+                    <div className="h-px bg-white/10 my-1" />
+                    <MenuItem label="Refresh" icon={Activity} onClick={() => { setIcons([...icons]); setContextMenu(prev => ({...prev, visible: false}))}} />
+                    <MenuItem label="Change Wallpaper" icon={Image} />
+                    <div className="h-px bg-white/10 my-1" />
+                    <MenuItem label="System Settings" icon={Maximize2} onClick={() => onNavigate('settings')} />
+                </div>
+            )}
         </div>
     );
 };
 
-const MetricCard = ({ label, value, icon: Icon, color }: any) => (
-    <div className="bg-os-panel border border-os-border rounded-xl p-3 min-w-[110px] flex flex-col gap-1 shadow-lg">
-        <div className="flex items-center gap-2 text-os-textDim text-[10px] font-bold uppercase tracking-wider">
-            <Icon className={`w-3.5 h-3.5 ${color}`} />
-            {label}
-        </div>
-        <div className="text-xl font-mono font-bold text-white">{value}</div>
-    </div>
-);
-
-const DashboardCard = ({ title, desc, icon: Icon, bg, iconColor, onClick }: any) => (
-    <div 
-        onClick={onClick}
-        className="group relative overflow-hidden bg-os-panel rounded-2xl border border-os-border p-5 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-aussie-500/30"
-    >
-        <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
-            <Icon className={`w-5 h-5 ${iconColor}`} />
-        </div>
-        
-        <div className="relative z-10">
-            <h3 className="font-bold text-base mb-0.5 text-white">{title}</h3>
-            <p className="text-xs text-os-textDim font-medium">{desc}</p>
-        </div>
-        
-        <div className="absolute bottom-5 right-5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-            <ChevronRight className="w-4 h-4 text-aussie-500" />
-        </div>
-    </div>
-);
-
-const ActivityItem = ({ icon: Icon, iconColor, bg, title, desc, time }: any) => (
-    <div className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-colors group cursor-default">
-        <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
-            <Icon className={`w-4 h-4 ${iconColor}`} />
-        </div>
-        <div className="flex-1 min-w-0 pt-0.5">
-            <div className="flex items-center justify-between mb-0.5">
-                <h4 className="font-bold text-xs text-gray-200">{title}</h4>
-                <span className="text-[10px] text-os-textDim font-medium">{time}</span>
-            </div>
-            <p className="text-xs text-os-textDim leading-relaxed truncate">{desc}</p>
-        </div>
-    </div>
-);
-
-const QuickLink = ({ label, onClick }: any) => (
+const MenuItem = ({ label, icon: Icon, onClick }: any) => (
     <button 
         onClick={onClick}
-        className="w-full flex items-center justify-between p-3 rounded-lg bg-os-bg hover:bg-white/5 border border-os-border hover:border-aussie-500/30 text-xs text-gray-300 font-medium transition-all group"
+        className="w-full px-3 py-2 flex items-center gap-3 text-sm text-gray-300 hover:bg-aussie-500 hover:text-[#0f1216] transition-colors text-left"
     >
-        <span>{label}</span>
-        <ChevronRight className="w-3.5 h-3.5 text-gray-600 group-hover:text-aussie-500 group-hover:translate-x-1 transition-all" />
+        <Icon className="w-4 h-4" />
+        {label}
     </button>
 );

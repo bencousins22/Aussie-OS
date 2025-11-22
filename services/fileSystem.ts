@@ -14,6 +14,7 @@ class FileSystemService {
 
     constructor() {
         this.root = this.loadFromStorage() || this.createDefaultStructure();
+        this.ensureDesktopEnvironment();
     }
 
     private createDefaultStructure(): FileNode {
@@ -24,6 +25,7 @@ class FileSystemService {
             lastModified: Date.now()
         };
 
+        // /workspace
         const workspace: FileNode = {
             name: 'workspace',
             type: 'directory',
@@ -32,23 +34,40 @@ class FileSystemService {
         };
         root.children?.set('workspace', workspace);
 
-        const welcome: FileNode = {
-            name: 'WELCOME.md',
-            type: 'file',
-            content: '# Welcome to Aussie OS\n\nThis is a fully persistent browser-based operating system.\n\n## Features\n- **Real Git**: Run `git init`, `git add`, `git commit`.\n- **Jules VM**: Run `gemini-flow jules` commands.\n- **Persistence**: All files are saved to LocalStorage.',
-            lastModified: Date.now()
-        };
-        workspace.children?.set('WELCOME.md', welcome);
-
-        const indexHtml: FileNode = {
-            name: 'index.html',
-            type: 'file',
-            content: '<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { background: #0f1115; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }\n  h1 { font-size: 3rem; background: linear-gradient(to right, #2f81f7, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }\n</style>\n</head>\n<body>\n  <h1>Aussie OS Live Preview</h1>\n</body>\n</html>',
-            lastModified: Date.now()
-        };
-        workspace.children?.set('index.html', indexHtml);
+        // /home/aussie/Desktop
+        const home: FileNode = { name: 'home', type: 'directory', children: new Map(), lastModified: Date.now() };
+        const aussie: FileNode = { name: 'aussie', type: 'directory', children: new Map(), lastModified: Date.now() };
+        const desktop: FileNode = { name: 'Desktop', type: 'directory', children: new Map(), lastModified: Date.now() };
+        
+        root.children?.set('home', home);
+        home.children?.set('aussie', aussie);
+        aussie.children?.set('Desktop', desktop);
 
         return root;
+    }
+
+    private ensureDesktopEnvironment() {
+        // Ensure /home/aussie/Desktop exists and populate it
+        if (!this.exists('/home/aussie/Desktop')) {
+            this.mkdir('/home/aussie/Desktop');
+        }
+
+        const shortcuts = [
+            { name: 'My Projects.lnk', content: 'app:projects' },
+            { name: 'Browser.lnk', content: 'app:browser' },
+            { name: 'Jules Flow.lnk', content: 'app:flow' },
+            { name: 'Terminal.lnk', content: 'app:code' },
+            { name: 'GitHub.lnk', content: 'app:github' },
+            { name: 'Deploy.lnk', content: 'app:deploy' },
+            { name: 'README.txt', content: 'Welcome to Aussie OS.\nThis is your desktop environment.' }
+        ];
+
+        shortcuts.forEach(s => {
+            const path = `/home/aussie/Desktop/${s.name}`;
+            if (!this.exists(path)) {
+                this.writeFile(path, s.content);
+            }
+        });
     }
 
     private loadFromStorage(): FileNode | null {
@@ -111,7 +130,6 @@ class FileSystemService {
         return node.content || '';
     }
 
-    // FIX: Updated writeFile to accept an optional `append` parameter.
     public writeFile(path: string, content: string, append?: boolean) {
         const parts = path.split('/').filter(p => p);
         const fileName = parts.pop();
@@ -219,8 +237,6 @@ class FileSystemService {
         this.delete(path);
     }
 
-    // --- Git Compatible Interface ---
-    // Provides a promise-based interface compatible with isomorphic-git expectations
     public get gitFs() {
         if (this._gitFsInterface) return this._gitFsInterface;
         
@@ -230,11 +246,9 @@ class FileSystemService {
                 readFile: async (path: string, opts: any) => {
                     try {
                         const content = self.readFile(path);
-                        // Handle encoding simulation (Git often wants buffer/uint8array)
                         if (opts && opts.encoding === 'utf8') return content;
                         return encoder.encode(content);
                     } catch (e: any) {
-                        // Git expects specific error codes
                         const err: any = new Error(e.message);
                         err.code = 'ENOENT';
                         throw err;
@@ -279,7 +293,7 @@ class FileSystemService {
                         isSymbolicLink: () => false,
                         size: node.content?.length || 0,
                         mtimeMs: node.lastModified,
-                        type: node.type === 'file' ? 1 : 2, // internal type simulation
+                        type: node.type === 'file' ? 1 : 2, 
                         mode: node.type === 'file' ? 0o100644 : 0o40755,
                         uid: 0,
                         gid: 0,
@@ -288,8 +302,6 @@ class FileSystemService {
                     };
                 },
                 lstat: async (path: string) => {
-                    // Just reuse the stat logic
-                    // In a real FS, lstat would differ for symlinks, but we don't support symlinks yet
                     const node = self.resolveNode(path);
                     if (!node) {
                         const err: any = new Error('ENOENT');

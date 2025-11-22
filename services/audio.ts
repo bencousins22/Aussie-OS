@@ -1,6 +1,6 @@
 
 /**
- * Audio Processing Utilities for Gemini Live API
+ * Audio Processing Utilities for Gemini Live API & TTS
  * Handles conversion between Web Audio API (Float32) and Live API (PCM Int16).
  */
 
@@ -72,5 +72,45 @@ export const audioUtils = {
         const audioBuffer = audioContext.createBuffer(1, float32Data.length, sampleRate);
         audioBuffer.getChannelData(0).set(float32Data);
         return audioBuffer;
+    },
+
+    /**
+     * Play standard Base64 Audio (MP3/WAV/Raw) via AudioContext
+     * Used for TTS playback
+     */
+    playBase64: async (base64Data: string) => {
+        try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            
+            // Convert base64 to array buffer
+            const binaryString = atob(base64Data);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            // Try standard decode first (for WAV/MP3 containers typical of TTS)
+            try {
+                // Clone buffer because decodeAudioData detaches it
+                const buffer = await audioContext.decodeAudioData(bytes.buffer.slice(0));
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+                return source;
+            } catch (e) {
+                console.warn("Standard decode failed, falling back to raw PCM decode for Live API compatibility.");
+                // Fallback to Raw PCM if standard decode fails
+                const buffer = await audioUtils.convertPCMToAudioBuffer(base64Data, audioContext, 24000);
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+                return source;
+            }
+        } catch (e) {
+            console.error("Audio Playback Error:", e);
+        }
     }
 };

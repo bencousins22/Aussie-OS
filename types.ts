@@ -156,11 +156,58 @@ export interface DeployState {
     url: string | null;
 }
 
-export type MainView = 'dashboard' | 'code' | 'flow' | 'browser' | 'scheduler' | 'github' | 'settings' | 'deploy';
+export type MainView = 'dashboard' | 'code' | 'flow' | 'browser' | 'scheduler' | 'github' | 'settings' | 'deploy' | 'projects';
 
 export interface ContextMenuState {
     x: number;
     y: number;
     path: string;
     type: 'file' | 'directory';
+}
+
+export interface ThemeConfig {
+    editorFontSize: number;
+    editorFontFamily: string;
+    editorMinimap: boolean;
+    editorWordWrap: boolean;
+    editorLineNumbers: boolean;
+    editorTheme: string;
+}
+
+export interface LayoutConfig {
+    sidebarWidth: number;
+    terminalHeight: number;
+    explorerWidth: number;
+    showActivityBar: boolean;
+}
+
+// --- COLLABORATION ---
+export interface Project {
+    id: string;
+    name: string;
+    description: string;
+    stack: ('react' | 'node' | 'python' | 'rust' | 'gemini')[];
+    lastUpdated: number;
+    path: string;
+    repoUrl?: string;
+}
+
+export interface Collaborator {
+    id: string;
+    name: string;
+    role: string;
+    avatar: string;
+    status: 'online' | 'coding' | 'idle' | 'reviewing';
+    file?: string;
+    cursor?: { lineNumber: number; column: number };
+    color: string;
+}
+
+export interface DesktopItem {
+    name: string;
+    path: string;
+    type: 'app' | 'file' | 'folder';
+    appTarget?: MainView;
+    x?: number;
+    y?: number;
 }

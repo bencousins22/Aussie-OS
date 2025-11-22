@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { fs } from '../services/fileSystem';
+import { collaboration } from '../services/collaboration';
 
 interface Props {
     filePath: string | null;
@@ -11,6 +12,7 @@ interface Props {
 export const MonacoEditor: React.FC<Props> = ({ filePath, language }) => {
     const [content, setContent] = useState('');
     const editorRef = useRef<any>(null);
+    const decorationsRef = useRef<string[]>([]);
 
     useEffect(() => {
         if (filePath) {
@@ -27,15 +29,71 @@ export const MonacoEditor: React.FC<Props> = ({ filePath, language }) => {
 
     const handleEditorChange = (value: string | undefined) => {
         if (filePath && value !== undefined) {
-            // Direct write to FS
             fs.writeFile(filePath, value);
         }
     };
 
+    // Collaborative Cursor Simulation
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (!editorRef.current || !filePath) return;
+            
+            const collaborators = collaboration.getCollaborators().filter(c => c.status === 'coding' && c.cursor);
+            
+            const newDecorations = collaborators.map(user => {
+                return {
+                    range: new (window as any).monaco.Range(user.cursor!.lineNumber, user.cursor!.column, user.cursor!.lineNumber, user.cursor!.column + 1),
+                    options: {
+                        className: `remote-cursor-${user.id}`,
+                        hoverMessage: { value: `**${user.name}** (${user.role})` },
+                        beforeContentClassName: `remote-cursor-label-${user.id}`
+                    }
+                };
+            });
+
+            // Apply decorations
+            decorationsRef.current = editorRef.current.deltaDecorations(decorationsRef.current, newDecorations);
+
+            // Inject dynamic CSS for cursors (since we can't easily pass color to className in monaco)
+            // In a real app, we'd use a styled component or dynamic style tag.
+            // Here we rely on a generic class or simple hack if possible, but for now we assume standard highlighting.
+            // Ideally we would inject a style tag into the head:
+            collaborators.forEach(user => {
+                const styleId = `cursor-style-${user.id}`;
+                if (!document.getElementById(styleId)) {
+                    const style = document.createElement('style');
+                    style.id = styleId;
+                    style.innerHTML = `
+                        .remote-cursor-${user.id} { border-left: 2px solid ${user.color}; background: ${user.color}20; }
+                        .remote-cursor-label-${user.id}::before {
+                            content: "${user.name}";
+                            position: absolute;
+                            top: -18px;
+                            left: 0;
+                            background: ${user.color};
+                            color: black;
+                            font-size: 10px;
+                            padding: 1px 4px;
+                            border-radius: 2px;
+                            white-space: nowrap;
+                            font-weight: bold;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            });
+
+        }, 500);
+
+        return () => clearInterval(interval);
+    }, [filePath]);
+
     const handleEditorDidMount: OnMount = (editor, monaco) => {
         editorRef.current = editor;
         
-        // Define Aussie OS Theme
+        // Make monaco available globally for the range constructor above
+        (window as any).monaco = monaco;
+
         monaco.editor.defineTheme('aussie-dark', {
             base: 'vs-dark',
             inherit: true,
@@ -47,7 +105,7 @@ export const MonacoEditor: React.FC<Props> = ({ filePath, language }) => {
                 { token: 'type', foreground: '00e599' }
             ],
             colors: {
-                'editor.background': '#0d1117', // OS Panel Color
+                'editor.background': '#0d1117', 
                 'editor.foreground': '#e6edf3',
                 'editor.lineHighlightBackground': '#161b22',
                 'editorCursor.foreground': '#00e599',
@@ -58,10 +116,6 @@ export const MonacoEditor: React.FC<Props> = ({ filePath, language }) => {
         });
         
         monaco.editor.setTheme('aussie-dark');
-
-        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-            // Auto-save visual feedback could happen here
-        });
     };
 
     if (!filePath) {

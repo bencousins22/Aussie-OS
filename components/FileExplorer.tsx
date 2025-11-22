@@ -15,9 +15,19 @@ interface ContextMenuState {
     type: 'file' | 'directory';
 }
 
+const EXPANDED_KEY = 'aussie_os_expanded_folders';
+
 export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
     const [items, setItems] = useState<FileStat[]>([]);
-    const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['/workspace']));
+    // Initialize expansion state from localStorage
+    const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
+        try {
+            const saved = localStorage.getItem(EXPANDED_KEY);
+            return saved ? new Set(JSON.parse(saved)) : new Set(['/workspace']);
+        } catch {
+            return new Set(['/workspace']);
+        }
+    });
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
     const [creating, setCreating] = useState<{ parentPath: string, type: 'file' | 'directory' } | null>(null);
     const [newItemName, setNewItemName] = useState('');
@@ -35,8 +45,23 @@ export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
     };
 
     const refresh = () => {
+        // Trigger re-render by fetching (state update driven by parent or interval in real app usually, 
+        // but here we force update by setting items if we were using items state for root, 
+        // but we generate tree dynamically. 
+        // We can force update by toggling a dummy state or just relying on the interval.)
+        // In this component structure, fetchFiles is called during render for the tree.
+        // We just need to trigger a re-render.
         setItems(fetchFiles('/workspace'));
     };
+
+    // Persist expansion state
+    useEffect(() => {
+        try {
+            localStorage.setItem(EXPANDED_KEY, JSON.stringify(Array.from(expandedFolders)));
+        } catch (e) {
+            console.error("Failed to save expansion state", e);
+        }
+    }, [expandedFolders]);
 
     useEffect(() => {
         refresh();
@@ -77,6 +102,7 @@ export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
             : contextMenu.path;
         
         setCreating({ parentPath, type });
+        // Ensure parent is expanded so we see the new item input
         setExpandedFolders(prev => new Set(prev).add(parentPath));
         setContextMenu(null);
     };
@@ -102,6 +128,7 @@ export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
                 onFileClick(fullPath);
             } else {
                 fs.mkdir(fullPath);
+                setExpandedFolders(prev => new Set(prev).add(fullPath));
             }
             refresh();
         } catch (e) {
@@ -184,7 +211,7 @@ export const FileExplorer: React.FC<Props> = ({ onFileClick }) => {
             {/* Context Menu */}
             {contextMenu && (
                 <div 
-                    className="fixed z-[9999] w-40 bg-[#161b22] border border-os-border shadow-2xl rounded-lg py-1 flex flex-col animate-in fade-in zoom-in duration-100"
+                    className="fixed z-[9999] w-40 bg-os-panel border border-os-border shadow-2xl rounded-lg py-1 flex flex-col animate-in fade-in zoom-in duration-100"
                     style={{ left: contextMenu.x, top: contextMenu.y }}
                     onClick={e => e.stopPropagation()}
                 >
